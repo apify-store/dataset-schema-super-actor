@@ -1,0 +1,24 @@
+{
+  "name": "dataset-schema-super-actor",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "apify",
+    "actor",
+    "dataset",
+    "schema",
+    "orchestration"
+  ],
+  "description": "SuperActor that orchestrates 5 Actors to generate, enhance, validate, and create PR with dataset schema",
+  "dependencies": {
+    "@octokit/rest": "^20.0.2",
+    "@types/node": "^24.5.0",
+    "apify": "^3.4.5",
+    "typescript": "^5.9.2"
+  }
+}

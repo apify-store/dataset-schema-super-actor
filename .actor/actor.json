@@ -1,0 +1,18 @@
+{
+  "actorSpecification": 1,
+  "name": "dataset-schema-super-actor",
+  "title": "Dataset Schema SuperActor",
+  "description": "Orchestrates 5 Actors to generate, enhance, validate, and create PR with dataset schema",
+  "version": "1.0",
+  "meta": {
+    "templateId": "typescript"
+  },
+  "dockerfile": "./Dockerfile",
+  "readme": "./README.md",
+  "categories": ["AI", "SCRAPING", "UTILITIES"],
+  "defaultRunOptions": {
+    "build": "latest",
+    "timeoutSecs": 600
+  },
+  "input": "./INPUT_SCHEMA.json"
+}

@@ -1,0 +1,478 @@
+import { Actor, ApifyClient } from 'apify';
+
+interface ValidationInput {
+    actorId: string;
+    datasetSchema: object;
+    redashApiKey: string;
+    daysBack?: number;
+    maximumResults?: number;
+    minimumResults?: number;
+    runsPerUser?: number;
+}
+
+interface ValidationResult {
+    datasetId: string;
+    isValid: boolean;
+    errors: string[];
+    itemCount: number;
+}
+
+interface ValidatorOutput {
+    actorId: string;
+    totalDatasets: number;
+    failedValidationResults: ValidationResult[];
+    datasetsNotFound: string[];
+    summary: {
+        validDatasets: number;
+        invalidDatasets: number;
+        notFoundDatasets: number;
+        successRate: number;
+        totalItems: number;
+    };
+    queryParameters: {
+        daysBack: number;
+        maximumResults: number;
+        minimumResults: number;
+        runsPerUser: number;
+    };
+}
+
+// Centralized error handling
+function handleError(context: string, error: unknown): never {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`${context}:`, message);
+    throw new Error(`${context}: ${message}`);
+}
+
+export class DatasetSchemaValidator {
+    private client: ApifyClient;
+
+    constructor() {
+        this.client = new ApifyClient({
+            token: process.env.APIFY_TOKEN
+        });
+    }
+
+    async processValidation(input: ValidationInput): Promise<ValidatorOutput> {
+        console.log('Starting dataset schema validation process...');
+        
+        // Query Redash for dataset IDs
+        const datasetIds = await this.queryRedashForDatasetIds(input);
+        
+        if (datasetIds.length === 0) {
+            console.log('No datasets found for the given criteria');
+            return {
+                actorId: input.actorId,
+                totalDatasets: 0,
+                failedValidationResults: [],
+                datasetsNotFound: [],
+                summary: {
+                    validDatasets: 0,
+                    invalidDatasets: 0,
+                    notFoundDatasets: 0,
+                    successRate: 0,
+                    totalItems: 0
+                },
+                queryParameters: {
+                    daysBack: input.daysBack || 5,
+                    maximumResults: input.maximumResults || 10,
+                    minimumResults: input.minimumResults || 1,
+                    runsPerUser: input.runsPerUser || 1
+                }
+            };
+        }
+
+        // Validate datasets in batches (limit to 100 at a time to avoid validation Actor limits)
+        const batchSize = 100;
+        const batches = [];
+        for (let i = 0; i < datasetIds.length; i += batchSize) {
+            batches.push(datasetIds.slice(i, i + batchSize));
+        }
+        
+        console.log(`Validating ${datasetIds.length} datasets in ${batches.length} batches of ${batchSize}...`);
+        
+        try {
+            const validationResult = await this.validateDatasetsInBatches(batches, input.datasetSchema);
+            console.log(`Batch validation completed: ${validationResult.validDatasets} valid, ${validationResult.invalidDatasets} invalid, ${validationResult.notFoundDatasets} not found`);
+            
+            return {
+                actorId: input.actorId,
+                totalDatasets: datasetIds.length,
+                failedValidationResults: validationResult.failedResults,
+                datasetsNotFound: validationResult.notFoundDatasets,
+                summary: {
+                    validDatasets: validationResult.validDatasets,
+                    invalidDatasets: validationResult.invalidDatasets,
+                    notFoundDatasets: validationResult.notFoundDatasets.length,
+                    successRate: validationResult.successRate,
+                    totalItems: validationResult.totalItems
+                },
+                queryParameters: {
+                    daysBack: input.daysBack || 5,
+                    maximumResults: input.maximumResults || 10,
+                    minimumResults: input.minimumResults || 1,
+                    runsPerUser: input.runsPerUser || 1
+                }
+            };
+        } catch (error) {
+            console.error('Batch validation failed:', error);
+            handleError('Batch validation failed', error);
+        }
+    }
+
+    private async validateDatasetsInBatches(batches: string[][], schema: object): Promise<{
+        validDatasets: number;
+        invalidDatasets: number;
+        notFoundDatasets: string[];
+        successRate: number;
+        totalItems: number;
+        failedResults: ValidationResult[];
+    }> {
+        let totalValid = 0;
+        let totalInvalid = 0;
+        let totalNotFound: string[] = [];
+        let totalItems = 0;
+        let allFailedResults: ValidationResult[] = [];
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            console.log(`Processing batch ${i + 1}/${batches.length} with ${batch.length} datasets...`);
+            
+            try {
+                const batchResult = await this.validateDatasetsBatch(batch, schema);
+                totalValid += batchResult.validDatasets;
+                totalInvalid += batchResult.invalidDatasets;
+                totalNotFound.push(...batchResult.notFoundDatasets);
+                totalItems += batchResult.totalItems;
+                allFailedResults.push(...batchResult.failedResults);
+                
+                console.log(`Batch ${i + 1} completed: ${batchResult.validDatasets} valid, ${batchResult.invalidDatasets} invalid`);
+            } catch (error) {
+                console.error(`Batch ${i + 1} failed:`, error);
+                // Continue with next batch instead of failing completely
+            }
+        }
+
+        const totalProcessed = totalValid + totalInvalid + totalNotFound.length;
+        const successRate = totalProcessed > 0 ? totalValid / totalProcessed : 0;
+
+        return {
+            validDatasets: totalValid,
+            invalidDatasets: totalInvalid,
+            notFoundDatasets: totalNotFound,
+            successRate,
+            totalItems,
+            failedResults: allFailedResults
+        };
+    }
+
+    private async validateDatasetsBatch(datasetIds: string[], schema: object): Promise<{
+        validDatasets: number;
+        invalidDatasets: number;
+        notFoundDatasets: string[];
+        successRate: number;
+        totalItems: number;
+        failedResults: ValidationResult[];
+    }> {
+        try {
+            console.log(`Calling validation Actor with ${datasetIds.length} dataset IDs...`);
+            
+            // Call the validation actor with all dataset IDs at once
+            const validationRun = await this.client.actor('jaroslavhejlek/validate-dataset-with-json-schema').call({
+                datasetIds: datasetIds,
+                schema: schema
+            });
+
+            // Get validation results
+            const { defaultDatasetId } = validationRun;
+            const validationDataset = this.client.dataset(defaultDatasetId);
+            const { items: validationResults } = await validationDataset.listItems();
+
+            console.log(`Validation Actor returned ${validationResults.length} results`);
+
+            // If validation Actor returns 0 results, it means all datasets passed validation
+            if (validationResults.length === 0) {
+                console.log('Validation Actor returned 0 results - all datasets passed validation');
+                return {
+                    validDatasets: datasetIds.length,
+                    invalidDatasets: 0,
+                    notFoundDatasets: [],
+                    successRate: 1.0,
+                    totalItems: 0, // We don't know the total items count, but validation passed
+                    failedResults: []
+                };
+            }
+
+            // Process results
+            const validDatasets = validationResults.filter((result: any) => result.isValid).length;
+            const invalidDatasets = validationResults.filter((result: any) => !result.isValid).length;
+            const notFoundDatasets: string[] = [];
+            const failedResults: ValidationResult[] = [];
+            let totalItems = 0;
+
+            for (const result of validationResults) {
+                const itemCount = typeof result.itemCount === 'number' ? result.itemCount : 0;
+                totalItems += itemCount;
+                
+                const errors = Array.isArray(result.errors) ? result.errors : [];
+                const datasetId = typeof result.datasetId === 'string' ? result.datasetId : 'unknown';
+                
+                if (errors.some((error: string) => error.includes('Dataset was not found'))) {
+                    notFoundDatasets.push(datasetId);
+                } else if (!result.isValid) {
+                    failedResults.push({
+                        datasetId: datasetId,
+                        isValid: false,
+                        itemCount: itemCount,
+                        errors: errors.length > 0 ? errors : ['Unknown validation error']
+                    });
+                }
+            }
+
+            const successRate = validationResults.length > 0 ? validDatasets / validationResults.length : 0;
+
+            return {
+                validDatasets,
+                invalidDatasets,
+                notFoundDatasets,
+                successRate,
+                totalItems,
+                failedResults
+            };
+
+        } catch (error) {
+            console.error('Batch validation failed:', error);
+            handleError('Batch validation failed', error);
+        }
+    }
+
+    private async resolveActorId(technicalName: string): Promise<string> {
+        try {
+            console.log(`Resolving technical name "${technicalName}" to Actor ID...`);
+            
+            // Use Apify SDK to get Actor details
+            const actor = this.client.actor(technicalName);
+            const actorData = await actor.get();
+            
+            if (!actorData || !actorData.id) {
+                throw new Error(`No Actor ID found for technical name: ${technicalName}`);
+            }
+
+            console.log(`Resolved "${technicalName}" to Actor ID: ${actorData.id}`);
+            return actorData.id;
+        } catch (error) {
+            console.error('Actor ID resolution failed:', error);
+            throw error;
+        }
+    }
+
+    private async queryRedashForDatasetIds(input: ValidationInput): Promise<string[]> {
+        try {
+            const {
+                actorId: technicalName,
+                redashApiKey,
+                daysBack = 5,
+                maximumResults = 10,
+                minimumResults = 1,
+                runsPerUser = 1
+            } = input;
+
+            // Resolve technical name to Actor ID
+            const actorId = await this.resolveActorId(technicalName);
+            console.log(`Querying Redash for actor ${actorId} (${technicalName})...`);
+
+            // Step 1: Try to get cached results first
+            const cachedUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}`;
+            console.log(`Trying cached results first: ${cachedUrl}`);
+
+            let executeResponse = await fetch(cachedUrl, {
+                headers: {
+                    'Authorization': `Key ${redashApiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // If no cached results, execute the query
+            if (!executeResponse.ok || executeResponse.status === 404) {
+                console.log('No cached results, executing query...');
+                const executeUrl = `https://charts.apify.com/api/queries/2039/results`;
+                console.log(`Executing query at: ${executeUrl}`);
+
+                executeResponse = await fetch(executeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Key ${redashApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        parameters: {
+                            "actor_id": actorId,
+                            "runs_per_user": runsPerUser.toString(),
+                            "days_back": daysBack.toString(),
+                            "minimum_results": minimumResults.toString(),
+                            "maximum_results": maximumResults.toString()
+                        },
+                        max_age: 0
+                    })
+                });
+            }
+
+            if (!executeResponse.ok) {
+                const errorText = await executeResponse.text();
+                console.error(`Query execute error: ${errorText}`);
+                handleError('Failed to execute query', `HTTP error! status: ${executeResponse.status}, response: ${errorText}`);
+            }
+
+            const executeData = await executeResponse.json();
+            console.log('Query execute response:', executeData);
+
+            // Check if we got cached results directly
+            if (executeData?.query_result?.data?.rows) {
+                console.log('Got cached results directly');
+                const datasetIds = executeData.query_result.data.rows.map((row: any) => row.default_dataset_id || row.dataset_id || row.id).filter(Boolean);
+                console.log(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
+                return datasetIds;
+            }
+
+            // Step 2: Poll for job completion
+            const jobId = executeData.job?.id;
+            if (!jobId) {
+                handleError('Job ID not found', 'No job ID in execute response');
+            }
+
+            console.log(`Polling job ${jobId} for completion...`);
+            let jobCompleted = false;
+            let attempts = 0;
+            const maxAttempts = 30; // 5 minutes max
+
+            while (!jobCompleted && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+                attempts++;
+
+                const jobUrl = `https://charts.apify.com/api/jobs/${jobId}`;
+                const jobResponse = await fetch(jobUrl, {
+                    headers: {
+                        'Authorization': `Key ${redashApiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!jobResponse.ok) {
+                    const errorText = await jobResponse.text();
+                    console.error(`Job status error: ${errorText}`);
+                    continue;
+                }
+
+                const jobData = await jobResponse.json();
+                console.log(`Job status attempt ${attempts}:`, jobData.job?.status);
+
+                if (jobData.job?.status === 3) { // Success
+                    jobCompleted = true;
+                    console.log('Job completed successfully');
+                    // Store the job data for later use
+                    executeData.job = jobData.job;
+                } else if (jobData.job?.status === 4) { // Error
+                    handleError('Redash job failed', `Job failed with status: ${jobData.job?.status}`);
+                }
+            }
+
+            if (!jobCompleted) {
+                handleError('Redash job timeout', 'Job did not complete within timeout period');
+            }
+
+            // Step 3: Get the results
+            const queryResultId = executeData.job?.query_result_id;
+            if (!queryResultId) {
+                handleError('Query result ID not found', 'No query result ID in execute response');
+            }
+
+            const resultsUrl = `https://charts.apify.com/api/query_results/${queryResultId}.json?api_key=${redashApiKey}`;
+            console.log(`Fetching results from: ${resultsUrl}`);
+
+            const resultsResponse = await fetch(resultsUrl, {
+                headers: {
+                    'Authorization': `Key ${redashApiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!resultsResponse.ok) {
+                const errorText = await resultsResponse.text();
+                console.error(`Results fetch error: ${errorText}`);
+                handleError('Redash results fetch failed', `HTTP error! status: ${resultsResponse.status}, response: ${errorText}`);
+            }
+
+            const resultsData = await resultsResponse.json();
+            console.log('Query results:', resultsData);
+
+            if (!resultsData?.query_result?.data?.rows) {
+                handleError('Redash results validation failed', 'Invalid results structure');
+            }
+
+            const datasetIds = resultsData.query_result.data.rows.map((row: any) => row.default_dataset_id || row.dataset_id || row.id).filter(Boolean);
+            
+            console.log(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
+            return datasetIds;
+        } catch (error) {
+            console.error('Redash query error details:', error);
+            handleError('Redash query failed', error);
+        }
+    }
+
+    private async validateDataset(datasetId: string, schema: object): Promise<ValidationResult> {
+        try {
+            console.log(`Validating dataset ${datasetId}...`);
+
+            // Get dataset items
+            const dataset = this.client.dataset(datasetId);
+            const { items } = await dataset.listItems();
+            
+            console.log(`Dataset ${datasetId} has ${items.length} items`);
+
+            // Call the validation actor
+            const validationRun = await this.client.actor('jaroslavhejlek/validate-dataset-with-json-schema').call({
+                datasetIds: [datasetId],
+                schema
+            });
+
+            // Get validation results
+            const { defaultDatasetId } = validationRun;
+            const validationDataset = this.client.dataset(defaultDatasetId);
+            const { items: validationResults } = await validationDataset.listItems();
+
+            // Process validation results
+            const errors: string[] = [];
+            let isValid = true;
+            
+            for (const result of validationResults) {
+                if (result && typeof result === 'object' && 'errors' in result) {
+                    const resultErrors = result.errors as any;
+                    if (Array.isArray(resultErrors) && resultErrors.length > 0) {
+                        isValid = false;
+                        errors.push(...resultErrors);
+                    }
+                }
+            }
+
+            console.log(`Dataset ${datasetId} validation: ${isValid ? 'VALID' : 'INVALID'}`);
+            if (!isValid) {
+                console.log(`Errors: ${errors.join(', ')}`);
+            }
+
+            return {
+                datasetId,
+                isValid,
+                errors,
+                itemCount: items.length
+            };
+        } catch (error) {
+            console.error(`Validation failed for dataset ${datasetId}:`, error);
+            return {
+                datasetId,
+                isValid: false,
+                errors: [`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+                itemCount: 0
+            };
+        }
+    }
+}

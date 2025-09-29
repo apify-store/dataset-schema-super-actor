@@ -1,0 +1,76 @@
+{
+  "title": "Dataset Schema SuperActor Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "actorTechnicalName": {
+      "title": "Actor Technical Name",
+      "type": "string",
+      "description": "The technical name of the Actor (e.g., 'apify/web-scraper')",
+      "editor": "textfield",
+      "example": "apify/web-scraper"
+    },
+    "githubLink": {
+      "title": "GitHub Repository Link",
+      "type": "string",
+      "description": "The GitHub repository URL where the actor.json is located",
+      "editor": "textfield",
+      "example": "https://github.com/apify/web-scraper"
+    },
+    "githubToken": {
+      "title": "GitHub Token",
+      "type": "string",
+      "description": "GitHub personal access token with repo permissions",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "redashToken": {
+      "title": "Redash API Key",
+      "type": "string",
+      "description": "Redash API key for dataset validation",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "generateViews": {
+      "title": "Generate Views",
+      "type": "boolean",
+      "description": "Generate view schemas for the Actor (Overview and context-specific views). If false, existing views from actor.json will be moved to dataset_schema.json",
+      "default": false,
+      "editor": "checkbox"
+    },
+    "daysBack": {
+      "title": "Days Back",
+      "type": "string",
+      "description": "Number of days back to query for datasets (1-30)",
+      "default": "5",
+      "editor": "textfield",
+      "example": "5"
+    },
+    "maximumResults": {
+      "title": "Maximum Results",
+      "type": "string",
+      "description": "Maximum number of datasets to validate (1-50)",
+      "default": "10",
+      "editor": "textfield",
+      "example": "10"
+    },
+    "minimumResults": {
+      "title": "Minimum Results",
+      "type": "string",
+      "description": "Minimum number of results required for validation (1+)",
+      "default": "1",
+      "editor": "textfield",
+      "example": "1"
+    },
+    "runsPerUser": {
+      "title": "Runs Per User",
+      "type": "string",
+      "description": "Number of runs per user to consider (1+)",
+      "default": "1",
+      "editor": "textfield",
+      "example": "1"
+    }
+  },
+  "required": ["actorTechnicalName", "githubLink", "githubToken", "redashToken"]
+}
+

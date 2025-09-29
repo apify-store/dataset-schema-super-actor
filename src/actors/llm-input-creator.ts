@@ -158,74 +158,58 @@ Default values and examples
 
 Step 3: Create 4 Test Input Configurations Design 4 different input configurations to exercise the Actor comprehensively. DO NOT run the Actor - only prepare the input objects:
 
-**CRITICAL: PREFER placeIds over startUrls for reliability. placeIds work perfectly, startUrls often fail validation.**
+**GENERIC INPUT GENERATION GUIDELINES:**
 
 minimalInput:
-
-Use only essential parameters
-Use minimal/default values
-Use ONLY ONE input method (PREFER placeIds over startUrls)
-For placeIds: Use REAL Google Place IDs of actual businesses/places (RECOMMENDED)
-For startUrls: Use REAL Google Maps URLs of actual businesses/places (if placeIds not available)
-Limit results to 3 items maximum
+- Use only essential parameters
+- Use minimal/default values
+- Focus on core functionality
+- Limit results to 3 items maximum
+- Use realistic but simple test data
 
 normalInput:
-
-Include required + common optional parameters
-Use realistic, varied input values
-Test different data types and options
-Use ONLY ONE input method (PREFER placeIds over startUrls)
-For placeIds: Use REAL Google Place IDs of actual businesses/places (RECOMMENDED)
-For startUrls: Use REAL Google Maps URLs of actual businesses/places (if placeIds not available)
-Limit results to 3 items maximum
+- Include required + common optional parameters
+- Use realistic, varied input values
+- Test different data types and options
+- Use diverse but valid test data
+- Limit results to 3 items maximum
 
 maximalInput:
-
-Utilize as many input parameters as possible
-Test comprehensive feature combinations
-Use diverse, realistic test data
-Explore all enum options and array inputs
-Use ONLY ONE input method (PREFER placeIds over startUrls)
-For placeIds: Use REAL Google Place IDs of actual businesses/places (RECOMMENDED)
-For startUrls: Use REAL Google Maps URLs of actual businesses/places (if placeIds not available)
-Limit results to 3 items maximum
+- Utilize as many input parameters as possible
+- Test comprehensive feature combinations
+- Use diverse, realistic test data
+- Explore all enum options and array inputs
+- Test edge cases within valid ranges
+- Limit results to 3 items maximum
 
 edgeInput:
-
-Create an input that will cause an error notification
-Use parameter values that pass input validation but will fail during execution
-For startUrls: Use REAL Google Maps URLs but with invalid coordinates or non-existent places
-For placeIds: Use REAL Google Place IDs but with invalid or non-existent places
-For text inputs, use nonsensical strings like "cnserjhvlsberuvberv" instead of normal words
-Use ONLY ONE input method (either startUrls OR placeIds, never both)
-This input is designed to test runtime error handling
+- Create an input that will cause an error notification
+- Use parameter values that pass input validation but will fail during execution
+- For text inputs, use nonsensical strings like "cnserjhvlsberuvberv" instead of normal words
+- Use invalid but structurally correct data types
+- This input is designed to test runtime error handling
 
 Input Variation Guidelines:
 
-**PREFER placeIds over startUrls for reliability:**
+**GENERIC VALIDATION RULES:**
+- Use realistic test data that matches the Actor's domain
+- For URLs: Use valid, existing URLs from the target platform
+- For IDs: Use real IDs from the target platform when possible
+- For locations: Use various geographic locations and formats
+- For numbers: Test different ranges, limits, and constraints
+- For booleans: Test both true and false values across runs
+- For arrays: Test different array lengths and content types
+- For enums: Test different enum values across the 4 inputs
 
-For Google Place IDs (RECOMMENDED): Use REAL Place IDs from actual businesses/places like:
-- ChIJb8Jg9pZYwokR-qHGtvSkLzs (Starbucks)
-- ChIJN1t_tDeuEmsRUsoyG83frY4 (McDonald's)
-- ChIJ4zGFAZpYwokRGUGphigMdg8 (Central Park)
-- ChIJb09Jxk5YwokR5W6h0CUBk0E (Pizza Hut)
-- ChIJd8BlQ2BZwokRDUQZ9Y1vAAQ (Times Square)
+**PLATFORM-SPECIFIC GUIDELINES:**
+- For Google Maps Actors: Use real Place IDs or valid Google Maps URLs
+- For Instagram Actors: Use real usernames, hashtags, or post URLs
+- For Twitter Actors: Use real usernames, hashtags, or tweet IDs
+- For YouTube Actors: Use real video IDs or channel URLs
+- For LinkedIn Actors: Use real company names or profile URLs
+- For Facebook Actors: Use real page names or post URLs
 
-For Google Maps URLs (use only if placeIds not available): Use REAL, EXISTING URLs from actual businesses/places like:
-- Starbucks: https://www.google.com/maps/place/Starbucks/@40.7589,-73.9851,17z/data=!3m1!4b1!4m5!3m4!1s0x89c2588f046ee661:0xa0b3281fcecc08c!8m2!3d40.7589!4d-73.9851
-- McDonald's: https://www.google.com/maps/place/McDonald's/@34.0522,-118.2437,15z/data=!3m1!4b1!4m5!3m4!1s0x80c2c75ddc27da13:0xe22fdf6f254608f4!8m2!3d34.0522!4d-118.2437
-- Central Park: https://www.google.com/maps/place/Central+Park/@40.7829,-73.9654,15z/data=!3m1!4b1!4m5!3m4!1s0x89c2589a018531e3:0xb9df1f7387a94119!8m2!3d40.7829!4d-73.9654
-
-For locations: Use various geographic locations and formats
-For numbers: Test different ranges, limits, and constraints
-For booleans: Test both true and false values across runs
-For arrays: Test different array lengths and content types
-For enums: Test different enum values across the 4 inputs
-
-**IMPORTANT ENUM VALUES:**
-- reviewsSort: "newest", "mostRelevant", "highestRanking", "lowestRanking" (NOT "highest", "lowest", "oldest")
-- language: Use valid language codes from the allowed list (en, es, fr, de, etc.)
-CRITICAL: Each configuration must use ONLY ONE input source (startUrls OR placeIds) to ensure exactly 3 results per run, not multiplication of inputs
+**CRITICAL: Each configuration must use realistic, valid data that the Actor can actually process**
 
 Output Format: Return the results in this exact JSON structure:
 {

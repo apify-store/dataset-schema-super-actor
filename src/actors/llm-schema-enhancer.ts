@@ -85,7 +85,6 @@ export class LLMSchemaEnhancer {
                     ],
                     model: 'anthropic/claude-sonnet-4',
                     temperature: 0.1,
-                    max_tokens: 4000,
                 })
             });
             
@@ -155,158 +154,60 @@ export class LLMSchemaEnhancer {
         // Convert properties to fields format for the prompt
         const schemaFields = datasetSchema.fields || datasetSchema.properties;
         
-        return `**Step 7: Read the provided Dataset Schema and enrich it**
+        return `Enhance this dataset schema for Actor: ${actorName}
 
-**CRITICAL REQUIREMENTS:**
-- **Structure**: Make sure it follows Apify Actor specification for dataset schemas
-- **All Fields Nullable**: Set \`nullable: true\` for every field even the nested ones
-- **No Required Fields**: Empty \`required\` array
-- **Additional Properties**: Set \`additionalProperties: true\` also for nested ones
-- **Realistic Examples**: Provide anonymized, realistic example values
-- **Clear Descriptions**: Write concise, informative field descriptions
+**REQUIREMENTS:**
+1. Follow Apify Actor specification format
+2. Set all fields as nullable: true
+3. Empty required array
+4. Add realistic, anonymized examples
+5. Write clear field descriptions
 
-**Schema Structure Excerpt Example:**
+**SCHEMA FORMAT:**
 \`\`\`json
 {
-    "actorSpecification": 1,
-    "fields": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-            "name": {
-                "type": "string"
-            },
-            "description": {
-                "type": "string"
-            },
-            "dimensions": {
-                "type": "object",
-                "nullable": true,
-                "properties": {
-                    "width": {
-                        "type": "number"
-                    },
-                    "height": {
-                        "type": "number"
-                    }
-                },
-                "required": [
-                    "width",
-                    "height"
-                ]
-            },
-            "price": {
-                "type": [
-                    "string",
-                    "number"
-                ]
-            },
-            "isDefective": {
-                "type": "boolean"
-            }
-        },
-        "required": [
-            "name",
-            "price"
-        ]
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "field_name": {
+        "type": "string",
+        "description": "Clear description",
+        "nullable": true,
+        "example": "example_value"
+      }
     },
-    "views": {}
-}
-\`\`\`
-
-**Field Definition Format:**
-\`\`\`json
-"field_name": {
-  "type": "string|number|boolean|array|object",
-  "description": "Clear description of the field's purpose and content",
-  "nullable": true,
-  "example": "single_example_value"
-}
-\`\`\`
-
-**For Array Fields:**
-\`\`\`json
-"array_field": {
-  "type": "array",
-  "description": "Description of the array content",
-  "items": {
-    "type": "string"
+    "required": []
   },
-  "nullable": true,
-  "example": ["item1", "item2"]
+  "views": {}
 }
 \`\`\`
 
-**For Nested Objects:**
-\`\`\`json
-"parent.child_field": {
-  "type": "string",
-  "description": "Description of the nested field",
-  "nullable": true,
-  "example": "example_value"
-}
-\`\`\`
-
-**ERROR HANDLING:**
-- Document any limitations or issues encountered
-
-**VALIDATION CHECKLIST:**
-- [ ] Dataset results analyzed and documented
-- [ ] All fields marked as nullable
-- [ ] No required fields specified
-- [ ] AdditionalProperties set to true
-- [ ] Single example value provided for each field (not arrays) - string fields get single string example, number fields get single number, etc.
-- [ ] Clear, informative descriptions written
-
-**ANONYMIZATION GUIDELINES:**
-- Personal names: Use generic patterns like "Example_user_234", "User_Name_123"
-- URLs: Use realistic structures with anonymized IDs like "https://example.com/user/123456789"
-- IDs: Use placeholder patterns like "id_123456789", "user_987654321"
-- All examples should be realistic but completely anonymized
-
-**EXAMPLE FORMAT REQUIREMENTS:**
-- Use "example" (singular) not "examples" (plural)
-- Provide single value that matches the field's data type
-- String fields: "example": "single_string_value"
+**FIELD RULES:**
+- String fields: "example": "single_string"
 - Number fields: "example": 123
 - Boolean fields: "example": true
 - Array fields: "example": ["item1", "item2"]
 - Object fields: "example": {"key": "value"}
 
-**VIEW GENERATION (if enabled):**
+**ANONYMIZATION:**
+- Names: "User_123", "Example_Name"
+- URLs: "https://example.com/user/123456"
+- IDs: "id_123456789"
+
 ${generateViews ? `
-- Generate contextually relevant views based on the dataset schema
-- Always include an "Overview" view with key fields
-- Create additional views for different data perspectives (e.g., "Reviewer Details", "Location Data", "Product Details")
-- Use emojis in view titles for visual distinction (e.g., "Overview 🔎", "Authors 🧑‍🎤")
-- Include "flatten" array for nested object fields (e.g., ["authorMeta", "videoMeta"])
-- Add detailed "properties" configuration with labels and formats
-- Use appropriate formats: "image" for URLs, "link" for URLs, "date" for timestamps, "number" for counts
-- Follow this structure:
-  "views": {
-    "overview": {
-      "title": "Overview 🔎",
-      "description": "",
-      "transformation": {
-        "fields": ["field1", "field2", "nested.field"],
-        "flatten": ["nested"]
-      },
-      "display": {
-        "component": "table",
-        "properties": {
-          "field1": {"label": "Field 1"},
-          "field2": {"label": "Field 2", "format": "number"},
-          "nested.field": {"label": "Nested Field", "format": "image"}
-        }
-      }
-    }
-  }
-` : '- Do not generate any views - leave views object empty'}
+**VIEW GENERATION:**
+Create relevant views with:
+- Overview view with key fields
+- Emojis in titles (e.g., "Overview 🔎")
+- Proper formatting (image, link, date, number)
+- Flatten nested objects
+` : '**VIEWS:** Leave empty - do not generate views'}
 
-**OUTPUT FORMAT:**
-Provide ONLY the final JSON schema as a properly formatted JSON block. Do not include any analysis, summary, or additional text - just the pure JSON schema.
+**OUTPUT:** Return only the JSON schema, no other text.
 
-**Input Dataset Schema to Enrich:**
+**INPUT SCHEMA:**
 \`\`\`json
 ${JSON.stringify({
     ...datasetSchema,

@@ -101,7 +101,8 @@ export class DatasetSchemaGenerator {
     } {
         const totalRuns = results.length;
         const successfulRuns = results.filter(r => r.success).length;
-        const overallSuccess = successfulRuns >= 2; // Need at least 2 successful runs
+        // Changed: Accept any number of successful runs, focus on dataset collection
+        const overallSuccess = successfulRuns > 0; // Need at least 1 successful run
         
         const summary = `${successfulRuns}/${totalRuns} runs successful`;
         
@@ -113,10 +114,31 @@ export class DatasetSchemaGenerator {
         };
     }
 
-    collectDatasetIds(results: RunResult[]): string[] {
-        return results
-            .filter(r => r.success && r.datasetId)
-            .map(r => r.datasetId!);
+    async collectDatasetIds(results: RunResult[]): Promise<string[]> {
+        // Collect datasets from both successful and failed runs
+        const datasetIds: string[] = [];
+        
+        for (const result of results) {
+            if (result.datasetId) {
+                datasetIds.push(result.datasetId);
+                console.log(`✅ Collected dataset from ${result.variant} run: ${result.datasetId}`);
+            } else if (result.runId) {
+                // Try to get dataset ID from failed run
+                try {
+                    const run = this.client.run(result.runId);
+                    const runInfo = await run.get();
+                    if (runInfo && runInfo.defaultDatasetId) {
+                        datasetIds.push(runInfo.defaultDatasetId);
+                        console.log(`✅ Collected dataset from failed ${result.variant} run: ${runInfo.defaultDatasetId}`);
+                    }
+                } catch (error) {
+                    console.log(`❌ Could not collect dataset from failed ${result.variant} run: ${error}`);
+                }
+            }
+        }
+        
+        console.log(`Total datasets collected: ${datasetIds.length}`);
+        return datasetIds;
     }
 
     async generateDatasetSchema(datasetIds: string[], schemaGeneratorActorId: string): Promise<SchemaGenerationResult> {

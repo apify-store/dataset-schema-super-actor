@@ -82,18 +82,12 @@ export class DatasetSchemaValidator {
             };
         }
 
-        // Validate datasets in batches (limit to 100 at a time to avoid validation Actor limits)
-        const batchSize = 100;
-        const batches = [];
-        for (let i = 0; i < datasetIds.length; i += batchSize) {
-            batches.push(datasetIds.slice(i, i + batchSize));
-        }
-        
-        console.log(`Validating ${datasetIds.length} datasets in ${batches.length} batches of ${batchSize}...`);
+        // Validate all datasets in a single call
+        console.log(`Validating ${datasetIds.length} datasets in single call...`);
         
         try {
-            const validationResult = await this.validateDatasetsInBatches(batches, input.datasetSchema);
-            console.log(`Batch validation completed: ${validationResult.validDatasets} valid, ${validationResult.invalidDatasets} invalid, ${validationResult.notFoundDatasets} not found`);
+            const validationResult = await this.validateAllDatasets(datasetIds, input.datasetSchema);
+            console.log(`Validation completed: ${validationResult.validDatasets} valid, ${validationResult.invalidDatasets} invalid, ${validationResult.notFoundDatasets} not found`);
             
             return {
                 actorId: input.actorId,
@@ -115,58 +109,12 @@ export class DatasetSchemaValidator {
                 }
             };
         } catch (error) {
-            console.error('Batch validation failed:', error);
-            handleError('Batch validation failed', error);
+            console.error('Validation failed:', error);
+            handleError('Validation failed', error);
         }
     }
 
-    private async validateDatasetsInBatches(batches: string[][], schema: object): Promise<{
-        validDatasets: number;
-        invalidDatasets: number;
-        notFoundDatasets: string[];
-        successRate: number;
-        totalItems: number;
-        failedResults: ValidationResult[];
-    }> {
-        let totalValid = 0;
-        let totalInvalid = 0;
-        let totalNotFound: string[] = [];
-        let totalItems = 0;
-        let allFailedResults: ValidationResult[] = [];
-
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
-            console.log(`Processing batch ${i + 1}/${batches.length} with ${batch.length} datasets...`);
-            
-            try {
-                const batchResult = await this.validateDatasetsBatch(batch, schema);
-                totalValid += batchResult.validDatasets;
-                totalInvalid += batchResult.invalidDatasets;
-                totalNotFound.push(...batchResult.notFoundDatasets);
-                totalItems += batchResult.totalItems;
-                allFailedResults.push(...batchResult.failedResults);
-                
-                console.log(`Batch ${i + 1} completed: ${batchResult.validDatasets} valid, ${batchResult.invalidDatasets} invalid`);
-            } catch (error) {
-                console.error(`Batch ${i + 1} failed:`, error);
-                // Continue with next batch instead of failing completely
-            }
-        }
-
-        const totalProcessed = totalValid + totalInvalid + totalNotFound.length;
-        const successRate = totalProcessed > 0 ? totalValid / totalProcessed : 0;
-
-        return {
-            validDatasets: totalValid,
-            invalidDatasets: totalInvalid,
-            notFoundDatasets: totalNotFound,
-            successRate,
-            totalItems,
-            failedResults: allFailedResults
-        };
-    }
-
-    private async validateDatasetsBatch(datasetIds: string[], schema: object): Promise<{
+    private async validateAllDatasets(datasetIds: string[], schema: object): Promise<{
         validDatasets: number;
         invalidDatasets: number;
         notFoundDatasets: string[];
@@ -241,8 +189,8 @@ export class DatasetSchemaValidator {
             };
 
         } catch (error) {
-            console.error('Batch validation failed:', error);
-            handleError('Batch validation failed', error);
+            console.error('Validation failed:', error);
+            handleError('Validation failed', error);
         }
     }
 

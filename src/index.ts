@@ -203,7 +203,7 @@ class DatasetSchemaSuperActor {
             }
 
             // Collect dataset IDs
-            const datasetIds = schemaGenerator.collectDatasetIds(runResults);
+            const datasetIds = await schemaGenerator.collectDatasetIds(runResults);
             console.log(`Found ${datasetIds.length} dataset(s): ${datasetIds.join(', ')}`);
             
             if (datasetIds.length === 0) {

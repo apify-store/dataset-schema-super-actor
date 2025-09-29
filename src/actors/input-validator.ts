@@ -141,90 +141,100 @@ export class InputValidator {
     }
 
     private validateInputPattern(input: any, targetActorId: string): { success: boolean; error?: string } {
-        // For Google Maps Reviews Scraper, validate URL patterns and required fields
-        if (targetActorId.includes('Google-Maps-Reviews-Scraper')) {
-            return this.validateGoogleMapsInput(input);
-        }
-        
-        // For other Actors, do basic validation
-        return this.validateGenericInput(input);
+        // Generic validation for all Actors
+        return this.validateGenericInput(input, targetActorId);
     }
 
-    private validateGoogleMapsInput(input: any): { success: boolean; error?: string } {
-        // Check if input has required fields
-        if (!input.maxReviews || typeof input.maxReviews !== 'number') {
-            return { success: false, error: 'maxReviews is required and must be a number' };
-        }
-
-        // Check if input has either startUrls or placeIds
-        if (!input.startUrls && !input.placeIds) {
-            return { success: false, error: 'Either startUrls or placeIds must be provided' };
-        }
-
-        // If startUrls provided, validate URL format
-        if (input.startUrls) {
-            if (!Array.isArray(input.startUrls) || input.startUrls.length === 0) {
-                return { success: false, error: 'startUrls must be a non-empty array' };
-            }
-
-            for (const url of input.startUrls) {
-                if (!this.isValidGoogleMapsUrl(url)) {
-                    return { success: false, error: `Invalid Google Maps URL format: ${url}` };
-                }
-            }
-        }
-
-        // If placeIds provided, validate format
-        if (input.placeIds) {
-            if (!Array.isArray(input.placeIds) || input.placeIds.length === 0) {
-                return { success: false, error: 'placeIds must be a non-empty array' };
-            }
-
-            for (const placeId of input.placeIds) {
-                if (typeof placeId !== 'string' || placeId.length < 10) {
-                    return { success: false, error: `Invalid place ID format: ${placeId}` };
-                }
-            }
-        }
-
-        // Validate language code if provided
-        if (input.language) {
-            const validLanguages = ['en', 'af', 'az', 'id', 'ms', 'bs', 'ca', 'cs', 'da', 'de', 'et', 'es', 'es-419', 'eu', 'fil', 'fr', 'gl', 'hr', 'zu', 'is', 'it', 'sw', 'lv', 'lt', 'hu', 'nl', 'no', 'uz', 'pl', 'pt-BR', 'pt-PT', 'ro', 'sq', 'sk', 'sl', 'fi', 'sv', 'vi', 'tr', 'el', 'bg', 'ky', 'kk', 'mk', 'mn', 'ru', 'sr', 'uk', 'ka', 'hy', 'iw', 'ur', 'ar', 'fa', 'am', 'ne', 'hi', 'mr', 'bn', 'pa', 'gu', 'ta', 'te', 'kn', 'ml', 'si', 'th', 'lo', 'my', 'km', 'ko', 'ja', 'zh-CN', 'zh-TW'];
-            if (!validLanguages.includes(input.language)) {
-                return { success: false, error: `Invalid language code: ${input.language}. Must be one of: ${validLanguages.slice(0, 10).join(', ')}...` };
-            }
-        }
-
-        return { success: true };
-    }
-
-    private isValidGoogleMapsUrl(url: string): boolean {
-        // Check if it's a valid Google Maps URL with proper format
-        // Must have: https://www.google.com/maps/place/[name]/@[lat],[lng],[zoom]z/data=![...]
-        const googleMapsPattern = /^https:\/\/www\.google\.com\/maps\/place\/[^\/]+\/@-?\d+\.\d+,-?\d+\.\d+,\d+z\/data=!.*$/;
-        
-        // Additional validation: check for proper coordinate ranges
-        const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+),(\d+)z/);
-        if (!coordMatch) return false;
-        
-        const lat = parseFloat(coordMatch[1]);
-        const lng = parseFloat(coordMatch[2]);
-        const zoom = parseInt(coordMatch[3]);
-        
-        // Validate coordinate ranges (latitude: -90 to 90, longitude: -180 to 180, zoom: 1 to 20)
-        if (lat < -90 || lat > 90) return false;
-        if (lng < -180 || lng > 180) return false;
-        if (zoom < 1 || zoom > 20) return false;
-        
-        return googleMapsPattern.test(url);
-    }
-
-    private validateGenericInput(input: any): { success: boolean; error?: string } {
-        // Basic validation for other Actors
+    private validateGenericInput(input: any, targetActorId: string): { success: boolean; error?: string } {
+        // Basic validation for all Actors
         if (!input || typeof input !== 'object') {
             return { success: false, error: 'Input must be an object' };
         }
 
+        // Generic validation rules that apply to most Actors
+        const validationRules = this.getValidationRules(targetActorId);
+        
+        for (const rule of validationRules) {
+            const result = rule.validate(input);
+            if (!result.success) {
+                return result;
+            }
+        }
+
         return { success: true };
+    }
+
+    private getValidationRules(targetActorId: string): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
+        // Return validation rules based on Actor type
+        const rules: Array<{ validate: (input: any) => { success: boolean; error?: string } }> = [];
+
+        // Common validation rules for all Actors
+        rules.push({
+            validate: (input: any) => {
+                if (!input || typeof input !== 'object') {
+                    return { success: false, error: 'Input must be an object' };
+                }
+                return { success: true };
+            }
+        });
+
+        // Add specific validation rules based on Actor type
+        if (targetActorId.includes('Google-Maps')) {
+            rules.push(...this.getGoogleMapsValidationRules());
+        } else if (targetActorId.includes('Instagram')) {
+            rules.push(...this.getInstagramValidationRules());
+        } else if (targetActorId.includes('Twitter')) {
+            rules.push(...this.getTwitterValidationRules());
+        }
+        // Add more Actor-specific rules as needed
+
+        return rules;
+    }
+
+    private getGoogleMapsValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
+        return [
+            {
+                validate: (input: any) => {
+                    if (!input.maxReviews || typeof input.maxReviews !== 'number') {
+                        return { success: false, error: 'maxReviews is required and must be a number' };
+                    }
+                    return { success: true };
+                }
+            },
+            {
+                validate: (input: any) => {
+                    if (!input.startUrls && !input.placeIds) {
+                        return { success: false, error: 'Either startUrls or placeIds must be provided' };
+                    }
+                    return { success: true };
+                }
+            }
+        ];
+    }
+
+    private getInstagramValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
+        return [
+            {
+                validate: (input: any) => {
+                    if (!input.username && !input.hashtags && !input.urls) {
+                        return { success: false, error: 'At least one of username, hashtags, or urls must be provided' };
+                    }
+                    return { success: true };
+                }
+            }
+        ];
+    }
+
+    private getTwitterValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
+        return [
+            {
+                validate: (input: any) => {
+                    if (!input.searchTerms && !input.userHandles && !input.tweetIds) {
+                        return { success: false, error: 'At least one of searchTerms, userHandles, or tweetIds must be provided' };
+                    }
+                    return { success: true };
+                }
+            }
+        ];
     }
 }

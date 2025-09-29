@@ -97,10 +97,10 @@ The five Actors to be orchestrated are:
 - [x] **Phase 4.4**: Fixed schema format handling ✅
 - [x] **Phase 4.5**: Schema enhancement working perfectly ✅
 - [ ] **Phase 4.6**: Schema validation failed due to Redash authentication ❌ **BLOCKED**
-- [ ] **Phase 4.7**: Remove Google Maps specific validation and make SuperActor truly generic
-- [ ] **Phase 4.8**: Modify Step 2 to collect datasets from ALL 4 runs (including failed ones)
-- [ ] **Phase 4.9**: Remove token limit and optimize AI prompt for Step 3
-- [ ] **Phase 4.10**: Replace batch processing with single validation Actor call
+- [x] **Phase 4.7**: Remove Google Maps specific validation and make SuperActor truly generic ✅
+- [x] **Phase 4.8**: Modify Step 2 to collect datasets from ALL 4 runs (including failed ones) ✅
+- [x] **Phase 4.9**: Remove token limit and optimize AI prompt for Step 3 ✅
+- [x] **Phase 4.10**: Replace batch processing with single validation Actor call ✅
 
 ## Current Status / Progress Tracking
 

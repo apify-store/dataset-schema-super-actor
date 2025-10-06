@@ -10,13 +10,6 @@ interface EnhancementResult {
     error?: string;
 }
 
-// Centralized error handling
-function handleError(context: string, error: unknown): never {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
-    throw new Error(`${context}: ${message}`);
-}
-
 export class LLMSchemaEnhancer {
     async enhanceSchema(input: EnhancementInput): Promise<EnhancementResult> {
         try {

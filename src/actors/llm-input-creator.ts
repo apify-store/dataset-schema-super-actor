@@ -1,9 +1,3 @@
-import { Actor } from 'apify';
-
-interface ActorInput {
-    actorTechnicalName: string;
-}
-
 interface BaseTestInput {
     maxItems?: number;
     resultsLimit?: number;

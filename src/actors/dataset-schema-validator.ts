@@ -1,4 +1,4 @@
-import { Actor, ApifyClient } from 'apify';
+import { ApifyClient } from 'apify';
 
 interface ValidationInput {
     actorId: string;
@@ -364,63 +364,6 @@ export class DatasetSchemaValidator {
         } catch (error) {
             console.error('Redash query error details:', error);
             handleError('Redash query failed', error);
-        }
-    }
-
-    private async validateDataset(datasetId: string, schema: object): Promise<ValidationResult> {
-        try {
-            console.log(`Validating dataset ${datasetId}...`);
-
-            // Get dataset items
-            const dataset = this.client.dataset(datasetId);
-            const { items } = await dataset.listItems();
-            
-            console.log(`Dataset ${datasetId} has ${items.length} items`);
-
-            // Call the validation actor
-            const validationRun = await this.client.actor('jaroslavhejlek/validate-dataset-with-json-schema').call({
-                datasetIds: [datasetId],
-                schema
-            });
-
-            // Get validation results
-            const { defaultDatasetId } = validationRun;
-            const validationDataset = this.client.dataset(defaultDatasetId);
-            const { items: validationResults } = await validationDataset.listItems();
-
-            // Process validation results
-            const errors: string[] = [];
-            let isValid = true;
-            
-            for (const result of validationResults) {
-                if (result && typeof result === 'object' && 'errors' in result) {
-                    const resultErrors = result.errors as any;
-                    if (Array.isArray(resultErrors) && resultErrors.length > 0) {
-                        isValid = false;
-                        errors.push(...resultErrors);
-                    }
-                }
-            }
-
-            console.log(`Dataset ${datasetId} validation: ${isValid ? 'VALID' : 'INVALID'}`);
-            if (!isValid) {
-                console.log(`Errors: ${errors.join(', ')}`);
-            }
-
-            return {
-                datasetId,
-                isValid,
-                errors,
-                itemCount: items.length
-            };
-        } catch (error) {
-            console.error(`Validation failed for dataset ${datasetId}:`, error);
-            return {
-                datasetId,
-                isValid: false,
-                errors: [`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
-                itemCount: 0
-            };
         }
     }
 }

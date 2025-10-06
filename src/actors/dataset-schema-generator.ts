@@ -1,12 +1,4 @@
-import { Actor, ApifyClient } from 'apify';
-
-interface TestInputConfig {
-    minimalInput: Record<string, any>;
-    normalInput: Record<string, any>;
-    maximalInput: Record<string, any>;
-    edgeInput: Record<string, any>;
-    targetActorId: string;
-}
+import { ApifyClient } from 'apify';
 
 interface RunResult {
     variant: string;
@@ -21,13 +13,6 @@ interface SchemaGenerationResult {
     error?: string;
     generatedBy?: string;
     schemaDatasetId?: string;
-}
-
-// Centralized error handling
-function handleError(context: string, error: unknown): never {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
-    throw new Error(`${context}: ${message}`);
 }
 
 export class DatasetSchemaGenerator {

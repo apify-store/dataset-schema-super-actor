@@ -1,5 +1,3 @@
-import { ApifyClient } from 'apify';
-
 interface TestInputConfig {
     minimalInput: Record<string, any>;
     normalInput: Record<string, any>;
@@ -19,22 +17,7 @@ interface ValidationResult {
     successfulInputs: string[];
 }
 
-// Centralized error handling
-function handleError(context: string, error: unknown): never {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
-    throw new Error(`${context}: ${message}`);
-}
-
 export class InputValidator {
-    private client: ApifyClient;
-
-    constructor() {
-        this.client = new ApifyClient({
-            token: process.env.APIFY_TOKEN
-        });
-    }
-
     async validateInputs(targetActorId: string, inputs: TestInputConfig): Promise<ValidationResult> {
         console.log(`Validating inputs for Actor: ${targetActorId}`);
         
@@ -57,7 +40,7 @@ export class InputValidator {
                 console.log(`Validating ${variantName} input...`);
                 
                 // Use pattern-based validation instead of actual Actor runs
-                const validationResult = this.validateInputPattern(input, targetActorId);
+                const validationResult = this.validateInputPattern(input);
                 
                 if (validationResult.success) {
                     results.push({
@@ -140,19 +123,19 @@ export class InputValidator {
         return feedback.join('\n');
     }
 
-    private validateInputPattern(input: any, targetActorId: string): { success: boolean; error?: string } {
+    private validateInputPattern(input: any): { success: boolean; error?: string } {
         // Generic validation for all Actors
-        return this.validateGenericInput(input, targetActorId);
+        return this.validateGenericInput(input);
     }
 
-    private validateGenericInput(input: any, targetActorId: string): { success: boolean; error?: string } {
+    private validateGenericInput(input: any): { success: boolean; error?: string } {
         // Basic validation for all Actors
         if (!input || typeof input !== 'object') {
             return { success: false, error: 'Input must be an object' };
         }
 
         // Generic validation rules that apply to most Actors
-        const validationRules = this.getValidationRules(targetActorId);
+        const validationRules = this.getValidationRules();
         
         for (const rule of validationRules) {
             const result = rule.validate(input);
@@ -164,7 +147,7 @@ export class InputValidator {
         return { success: true };
     }
 
-    private getValidationRules(targetActorId: string): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
+    private getValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
         // Generic validation rules for all Actors - no actor-specific rules
         const rules: Array<{ validate: (input: any) => { success: boolean; error?: string } }> = [];
 
@@ -181,5 +164,4 @@ export class InputValidator {
         // No actor-specific validation rules - let the Actor itself validate the inputs
         return rules;
     }
-
 }

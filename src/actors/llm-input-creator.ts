@@ -183,11 +183,14 @@ maximalInput:
 - Limit results to 3 items maximum
 
 edgeInput:
-- Create an input that will cause an error notification
-- Use parameter values that pass input validation but will fail during execution
-- For text inputs, use nonsensical strings like "cnserjhvlsberuvberv" instead of normal words
-- Use invalid but structurally correct data types
-- This input is designed to test runtime error handling
+- Create an input that will cause the Actor to fail during execution but still produce a dataset
+- Use parameter values that pass input validation but will fail when the Actor tries to access/process them
+- For text inputs, use realistic but non-existent identifiers (e.g., "user_999999999", "place_ch_999999999")
+- Use valid data types and formats but with values that don't exist in the target system
+- This input should trigger Actor failure during data retrieval/processing but still generate an error dataset
+- Examples: Non-existent Place IDs that look valid, deleted user profiles, expired content that appears active
+- IMPORTANT: Keep URLs reasonable length (under 200 characters) - avoid extremely long URLs
+- The key is using data that looks legitimate but doesn't actually exist when the Actor tries to fetch it
 
 Input Variation Guidelines:
 

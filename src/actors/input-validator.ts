@@ -165,10 +165,10 @@ export class InputValidator {
     }
 
     private getValidationRules(targetActorId: string): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
-        // Return validation rules based on Actor type
+        // Generic validation rules for all Actors - no actor-specific rules
         const rules: Array<{ validate: (input: any) => { success: boolean; error?: string } }> = [];
 
-        // Common validation rules for all Actors
+        // Only basic validation rules that apply to all Actors
         rules.push({
             validate: (input: any) => {
                 if (!input || typeof input !== 'object') {
@@ -178,63 +178,8 @@ export class InputValidator {
             }
         });
 
-        // Add specific validation rules based on Actor type
-        if (targetActorId.includes('Google-Maps')) {
-            rules.push(...this.getGoogleMapsValidationRules());
-        } else if (targetActorId.includes('Instagram')) {
-            rules.push(...this.getInstagramValidationRules());
-        } else if (targetActorId.includes('Twitter')) {
-            rules.push(...this.getTwitterValidationRules());
-        }
-        // Add more Actor-specific rules as needed
-
+        // No actor-specific validation rules - let the Actor itself validate the inputs
         return rules;
     }
 
-    private getGoogleMapsValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
-        return [
-            {
-                validate: (input: any) => {
-                    if (!input.maxReviews || typeof input.maxReviews !== 'number') {
-                        return { success: false, error: 'maxReviews is required and must be a number' };
-                    }
-                    return { success: true };
-                }
-            },
-            {
-                validate: (input: any) => {
-                    if (!input.startUrls && !input.placeIds) {
-                        return { success: false, error: 'Either startUrls or placeIds must be provided' };
-                    }
-                    return { success: true };
-                }
-            }
-        ];
-    }
-
-    private getInstagramValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
-        return [
-            {
-                validate: (input: any) => {
-                    if (!input.username && !input.hashtags && !input.urls) {
-                        return { success: false, error: 'At least one of username, hashtags, or urls must be provided' };
-                    }
-                    return { success: true };
-                }
-            }
-        ];
-    }
-
-    private getTwitterValidationRules(): Array<{ validate: (input: any) => { success: boolean; error?: string } }> {
-        return [
-            {
-                validate: (input: any) => {
-                    if (!input.searchTerms && !input.userHandles && !input.tweetIds) {
-                        return { success: false, error: 'At least one of searchTerms, userHandles, or tweetIds must be provided' };
-                    }
-                    return { success: true };
-                }
-            }
-        ];
-    }
 }

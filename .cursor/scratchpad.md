@@ -101,6 +101,9 @@ The five Actors to be orchestrated are:
 - [x] **Phase 4.8**: Modify Step 2 to collect datasets from ALL 4 runs (including failed ones) ✅
 - [x] **Phase 4.9**: Remove token limit and optimize AI prompt for Step 3 ✅
 - [x] **Phase 4.10**: Replace batch processing with single validation Actor call ✅
+- [x] **Phase 4.11**: Fix PR creation to target actor-specific directory instead of root directory ✅
+- [x] **Phase 4.12**: Improve edgeInput strategy to create inputs that fail during execution but still produce error datasets ✅
+- [x] **Phase 4.13**: Remove all hardcoded actor-specific validation rules to make SuperActor truly generic ✅
 
 ## Current Status / Progress Tracking
 
@@ -169,7 +172,60 @@ The SuperActor is essentially complete! Only needs:
 
 ## Executor's Feedback or Assistance Requests
 
-*No current requests*
+### Planner Analysis Complete - Ready for Questions
+
+**Status**: ✅ **FULLY FAMILIAR WITH CODEBASE**
+
+I have thoroughly analyzed the entire Dataset Schema SuperActor codebase and understand its architecture, implementation, and current state. Here's my comprehensive understanding:
+
+#### **Codebase Overview**
+This is a **SuperActor** that orchestrates 5 existing Apify Actors in sequence to generate, enhance, validate, and create PRs with dataset schemas. The project is **fully implemented and working** with recent optimizations completed.
+
+#### **Architecture & Flow**
+```
+Input → Step 1: LLM Input Creator → Step 2: Dataset Schema Generator → 
+Step 3: LLM Schema Enhancer → Step 4: Dataset Schema Validator → 
+Step 5: Create PR Service → Output (PR URL)
+```
+
+#### **Key Components**
+1. **Main Orchestrator** (`src/index.ts`): 380-line main class that coordinates all 5 steps
+2. **LLM Input Creator** (`llm-input-creator.ts`): Uses Claude Sonnet 4 to generate 4 test input variants
+3. **Dataset Schema Generator** (`dataset-schema-generator.ts`): Runs target Actor with inputs, collects datasets, generates schema
+4. **LLM Schema Enhancer** (`llm-schema-enhancer.ts`): Uses Claude Sonnet 4 to enhance schema with descriptions and examples
+5. **Dataset Schema Validator** (`dataset-schema-validator.ts`): Queries Redash for real datasets and validates against schema
+6. **Create PR Service** (`create-pr-service.ts`): Creates GitHub PRs with dataset_schema.json and updated actor.json
+7. **Input Validator** (`input-validator.ts`): Validates generated inputs with retry logic
+
+#### **Current Status**
+- ✅ **Fully Functional**: All 5 steps working correctly
+- ✅ **Recently Optimized**: Removed Google Maps hardcoding, improved dataset collection, simplified validation
+- ✅ **Generic**: Works with any Actor type, not just Google Maps
+- ✅ **Production Ready**: Deployed and tested on Apify platform
+
+#### **Recent Improvements Completed**
+- ✅ Removed Google Maps specific validation (now generic)
+- ✅ Modified Step 2 to collect datasets from ALL runs (including failed ones)
+- ✅ Removed token limits and optimized AI prompts
+- ✅ Replaced batch processing with single validation calls
+- ✅ Enhanced error handling and retry logic
+
+#### **Technical Stack**
+- **Language**: TypeScript
+- **Platform**: Apify SDK
+- **AI**: Claude Sonnet 4 via OpenRouter
+- **APIs**: GitHub API, Redash API, Apify API
+- **Dependencies**: @octokit/rest, apify, typescript
+
+#### **Key Features**
+- **Fail-fast error handling** with detailed progress tracking
+- **Retry logic** for input generation with AI feedback
+- **Generic validation** for any Actor type
+- **Comprehensive logging** for debugging
+- **Surgical actor.json updates** preserving formatting
+- **Monorepo support** with intelligent actor.json discovery
+
+I'm now ready to answer any questions about the codebase, help with modifications, explain specific functionality, or assist with any development tasks!
 
 ## Lessons
 
@@ -200,6 +256,13 @@ The SuperActor is essentially complete! Only needs:
 - **Solution**: Call validation Actor once with all dataset IDs instead of batching
 - **Files Affected**: `src/actors/dataset-schema-validator.ts`
 - **Prevention**: Design for single Actor calls when possible, avoid unnecessary batching
+
+### Lesson 5: PR Creation in Wrong Repository Location
+- **Issue**: SuperActor was finding root-level `.actor/actor.json` instead of actor-specific `.actor/actor.json`
+- **Impact**: PRs created in wrong directory (e.g., `/.actor/` instead of `/actors/compass_Google-Maps-Reviews-Scraper/.actor/`)
+- **Solution**: Only search for actor-specific actor.json and fail if not found (no fallback to generic locations)
+- **Files Affected**: `src/actors/create-pr-service.ts`
+- **Prevention**: Always require exact match for actor-specific files, fail fast if not found
 
 ---
 

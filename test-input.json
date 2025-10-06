@@ -4,8 +4,8 @@
     "githubLink": "https://github.com/apify-store/dataset-test",
     "githubToken": "YOUR_GITHUB_TOKEN_HERE",
     "redashToken": "YOUR_REDASH_TOKEN_HERE",
-    "daysBack": "2",
+    "daysBack": "5",
     "maximumResults": "5",
     "minimumResults": "1",
-    "runsPerUser": "1"
+    "runsPerUser": "2"
 }

@@ -322,52 +322,36 @@ export class CreatePRService {
                 console.log('Could not list root directory:', error);
             }
 
-            // Search in all possible locations
-            const searchPaths = [
-                'actor.json',
-                '.actor/actor.json',
-                'src/actor.json',
-                'lib/actor.json',
-                'dist/actor.json',
-                'build/actor.json'
-            ];
+            // Extract actor name from technical name for targeted search
+            const actorName = this.input.actorTechnicalName?.split('/').pop();
+            console.log(`Looking for actor-specific actor.json for: ${actorName}`);
 
-            console.log('Searching in common locations...');
-            for (const searchPath of searchPaths) {
+            // PRIORITY 1: Search for actor-specific actor.json first (most specific)
+            if (actorName) {
+                console.log('Priority 1: Searching for actor-specific actor.json...');
+                
+                // Search in actors directory for the specific actor
                 try {
-                    console.log(`Checking: ${searchPath}`);
-                    const response = await this.octokit.rest.repos.getContent({
+                    const actorsResponse = await this.octokit.rest.repos.getContent({
                         owner,
                         repo,
-                        path: searchPath,
+                        path: 'actors',
                         ref: branch
                     });
 
-                    if (!Array.isArray(response.data) && response.data.type === 'file') {
-                        console.log(`Found actor.json at: ${searchPath}`);
-                        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-                        return { content, path: searchPath };
-                    }
-                } catch (error) {
-                    console.log(`Not found: ${searchPath}`);
-                }
-            }
-
-            // Search in packages directory
-            console.log('Searching in packages directory...');
-            try {
-                const packagesResponse = await this.octokit.rest.repos.getContent({
-                    owner,
-                    repo,
-                    path: 'packages',
-                    ref: branch
-                });
-
-                if (Array.isArray(packagesResponse.data)) {
-                    console.log('Packages found:', packagesResponse.data.map(item => item.name).join(', '));
-                    for (const item of packagesResponse.data) {
-                        if (item.type === 'dir') {
-                            const actorJsonPath = `packages/${item.name}/actor.json`;
+                    if (Array.isArray(actorsResponse.data)) {
+                        console.log('Actors found:', actorsResponse.data.map(item => item.name).join(', '));
+                        
+                        // Look for exact match first
+                        const exactMatch = actorsResponse.data.find(item => 
+                            item.type === 'dir' && item.name === actorName
+                        );
+                        
+                        if (exactMatch) {
+                            console.log(`Found exact actor directory: ${exactMatch.name}`);
+                            
+                            // Check for .actor/actor.json in the specific actor directory
+                            const actorJsonPath = `actors/${exactMatch.name}/.actor/actor.json`;
                             try {
                                 console.log(`Checking: ${actorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
@@ -378,86 +362,7 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`Found actor.json at: ${actorJsonPath}`);
-                                    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-                                    return { content, path: actorJsonPath };
-                                }
-                            } catch (error) {
-                                console.log(`Not found: ${actorJsonPath}`);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('Packages directory not found or accessible');
-            }
-
-            // Search in apps directory
-            console.log('Searching in apps directory...');
-            try {
-                const appsResponse = await this.octokit.rest.repos.getContent({
-                    owner,
-                    repo,
-                    path: 'apps',
-                    ref: branch
-                });
-
-                if (Array.isArray(appsResponse.data)) {
-                    console.log('Apps found:', appsResponse.data.map(item => item.name).join(', '));
-                    for (const item of appsResponse.data) {
-                        if (item.type === 'dir') {
-                            const actorJsonPath = `apps/${item.name}/actor.json`;
-                            try {
-                                console.log(`Checking: ${actorJsonPath}`);
-                                const response = await this.octokit.rest.repos.getContent({
-                                    owner,
-                                    repo,
-                                    path: actorJsonPath,
-                                    ref: branch
-                                });
-
-                                if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`Found actor.json at: ${actorJsonPath}`);
-                                    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-                                    return { content, path: actorJsonPath };
-                                }
-                            } catch (error) {
-                                console.log(`Not found: ${actorJsonPath}`);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('Apps directory not found or accessible');
-            }
-
-            // Search in actors directory (Apify store structure)
-            console.log('Searching in actors directory...');
-            try {
-                const actorsResponse = await this.octokit.rest.repos.getContent({
-                    owner,
-                    repo,
-                    path: 'actors',
-                    ref: branch
-                });
-
-                if (Array.isArray(actorsResponse.data)) {
-                    console.log('Actors found:', actorsResponse.data.map(item => item.name).join(', '));
-                    for (const item of actorsResponse.data) {
-                        if (item.type === 'dir') {
-                            // Check for .actor/actor.json in each actor directory
-                            const actorJsonPath = `actors/${item.name}/.actor/actor.json`;
-                            try {
-                                console.log(`Checking: ${actorJsonPath}`);
-                                const response = await this.octokit.rest.repos.getContent({
-                                    owner,
-                                    repo,
-                                    path: actorJsonPath,
-                                    ref: branch
-                                });
-
-                                if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`Found actor.json at: ${actorJsonPath}`);
+                                    console.log(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: actorJsonPath };
                                 }
@@ -466,7 +371,7 @@ export class CreatePRService {
                             }
 
                             // Also check for actor.json directly in the actor directory
-                            const directActorJsonPath = `actors/${item.name}/actor.json`;
+                            const directActorJsonPath = `actors/${exactMatch.name}/actor.json`;
                             try {
                                 console.log(`Checking: ${directActorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
@@ -477,63 +382,72 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`Found actor.json at: ${directActorJsonPath}`);
+                                    console.log(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
+                                    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+                                    return { content, path: directActorJsonPath };
+                                }
+                            } catch (error) {
+                                console.log(`Not found: ${directActorJsonPath}`);
+                            }
+                        }
+
+                        // Look for partial matches (in case naming conventions differ)
+                        const partialMatches = actorsResponse.data.filter(item => 
+                            item.type === 'dir' && 
+                            (item.name.includes(actorName) || actorName.includes(item.name))
+                        );
+
+                        for (const match of partialMatches) {
+                            console.log(`Checking partial match: ${match.name}`);
+                            
+                            // Check for .actor/actor.json
+                            const actorJsonPath = `actors/${match.name}/.actor/actor.json`;
+                            try {
+                                console.log(`Checking: ${actorJsonPath}`);
+                                const response = await this.octokit.rest.repos.getContent({
+                                    owner,
+                                    repo,
+                                    path: actorJsonPath,
+                                    ref: branch
+                                });
+
+                                if (!Array.isArray(response.data) && response.data.type === 'file') {
+                                    console.log(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: actorJsonPath };
+                                }
+                            } catch (error) {
+                                console.log(`Not found: ${actorJsonPath}`);
+                            }
+
+                            // Check for direct actor.json
+                            const directActorJsonPath = `actors/${match.name}/actor.json`;
+                            try {
+                                console.log(`Checking: ${directActorJsonPath}`);
+                                const response = await this.octokit.rest.repos.getContent({
+                                    owner,
+                                    repo,
+                                    path: directActorJsonPath,
+                                    ref: branch
+                                });
+
+                                if (!Array.isArray(response.data) && response.data.type === 'file') {
+                                    console.log(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
+                                    const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+                                    return { content, path: directActorJsonPath };
                                 }
                             } catch (error) {
                                 console.log(`Not found: ${directActorJsonPath}`);
                             }
                         }
                     }
-                }
-            } catch (error) {
-                console.log('Actors directory not found or accessible');
-            }
-
-            // Search in other common monorepo directories
-            const otherDirs = ['libs', 'modules', 'services', 'components'];
-            for (const dir of otherDirs) {
-                console.log(`Searching in ${dir} directory...`);
-                try {
-                    const dirResponse = await this.octokit.rest.repos.getContent({
-                        owner,
-                        repo,
-                        path: dir,
-                        ref: branch
-                    });
-
-                    if (Array.isArray(dirResponse.data)) {
-                        console.log(`${dir} found:`, dirResponse.data.map(item => item.name).join(', '));
-                        for (const item of dirResponse.data) {
-                            if (item.type === 'dir') {
-                                const actorJsonPath = `${dir}/${item.name}/actor.json`;
-                                try {
-                                    console.log(`Checking: ${actorJsonPath}`);
-                                    const response = await this.octokit.rest.repos.getContent({
-                                        owner,
-                                        repo,
-                                        path: actorJsonPath,
-                                        ref: branch
-                                    });
-
-                                    if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                        console.log(`Found actor.json at: ${actorJsonPath}`);
-                                        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-                                        return { content, path: actorJsonPath };
-                                    }
-                                } catch (error) {
-                                    console.log(`Not found: ${actorJsonPath}`);
-                                }
-                            }
-                        }
-                    }
                 } catch (error) {
-                    console.log(`${dir} directory not found or accessible`);
+                    console.log('Actors directory not found or accessible');
                 }
             }
 
-            throw new Error('actor.json file not found in any common locations. Please ensure the repository contains an actor.json file.');
+            // If no actor-specific actor.json found, fail immediately
+            throw new Error(`Actor-specific actor.json not found for "${actorName}". Expected to find actor.json in actors/${actorName}/.actor/ or actors/${actorName}/ directory. Please ensure the actor exists in the repository.`);
         } catch (error) {
             handleError('Failed to find actor.json', error);
         }

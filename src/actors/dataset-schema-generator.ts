@@ -1,4 +1,4 @@
-import { ApifyClient } from 'apify';
+import { ApifyClient, log } from 'apify';
 
 interface RunResult {
     variant: string;
@@ -30,20 +30,20 @@ export class DatasetSchemaGenerator {
         maximal: Record<string, any>;
         edge: Record<string, any>;
     }): Promise<RunResult[]> {
-        console.log(`Running Actor ${targetActorId} with 4 input variants in parallel...`);
-        
+        log.info(`Running Actor ${targetActorId} with 4 input variants in parallel...`);
+
         // Create parallel execution promises for all variants
         const runPromises = Object.entries(variants).map(async ([variantName, input]) => {
             try {
-                console.log(`Starting ${variantName} input...`);
-                
+                log.info(`Starting ${variantName} input...`);
+
                 const run = await this.client.actor(targetActorId).call(input, {
                     timeout: 300000, // 5 minutes timeout
                     memory: 2048
                 });
                 
                 if (run && run.defaultDatasetId) {
-                    console.log(`✅ ${variantName} run successful, dataset: ${run.defaultDatasetId}`);
+                    log.info(`✅ ${variantName} run successful, dataset: ${run.defaultDatasetId}`);
                     return {
                         variant: variantName,
                         success: true,
@@ -51,7 +51,7 @@ export class DatasetSchemaGenerator {
                         runId: run.id
                     };
                 } else {
-                    console.log(`❌ ${variantName} run failed: No dataset ID returned`);
+                    log.info(`❌ ${variantName} run failed: No dataset ID returned`);
                     return {
                         variant: variantName,
                         success: false,
@@ -61,7 +61,7 @@ export class DatasetSchemaGenerator {
                 }
                 
             } catch (error) {
-                console.log(`❌ ${variantName} run failed:`, error);
+                log.warning(`❌ ${variantName} run failed:`, { error });
                 return {
                     variant: variantName,
                     success: false,
@@ -72,9 +72,11 @@ export class DatasetSchemaGenerator {
         
         // Wait for all runs to complete in parallel
         const results = await Promise.all(runPromises);
-        
-        console.log(`All runs completed. Results: ${results.filter(r => r.success).length}/${results.length} successful`);
-        
+
+        log.info(
+            `All runs completed. Results: ${results.filter((r) => r.success).length}/${results.length} successful`,
+        );
+
         return results;
     }
 
@@ -106,7 +108,7 @@ export class DatasetSchemaGenerator {
         for (const result of results) {
             if (result.datasetId) {
                 datasetIds.push(result.datasetId);
-                console.log(`✅ Collected dataset from ${result.variant} run: ${result.datasetId}`);
+                log.info(`✅ Collected dataset from ${result.variant} run: ${result.datasetId}`);
             } else if (result.runId) {
                 // Try to get dataset ID from failed run
                 try {
@@ -114,22 +116,22 @@ export class DatasetSchemaGenerator {
                     const runInfo = await run.get();
                     if (runInfo && runInfo.defaultDatasetId) {
                         datasetIds.push(runInfo.defaultDatasetId);
-                        console.log(`✅ Collected dataset from failed ${result.variant} run: ${runInfo.defaultDatasetId}`);
+                        log.info(`✅ Collected dataset from failed ${result.variant} run: ${runInfo.defaultDatasetId}`);
                     }
                 } catch (error) {
-                    console.log(`❌ Could not collect dataset from failed ${result.variant} run: ${error}`);
+                    log.info(`❌ Could not collect dataset from failed ${result.variant} run: ${error}`);
                 }
             }
         }
-        
-        console.log(`Total datasets collected: ${datasetIds.length}`);
+
+        log.info(`Total datasets collected: ${datasetIds.length}`);
         return datasetIds;
     }
 
     async generateDatasetSchema(datasetIds: string[], schemaGeneratorActorId: string): Promise<SchemaGenerationResult> {
         try {
-            console.log(`Generating schema from ${datasetIds.length} datasets using Actor ${schemaGeneratorActorId}...`);
-            
+            log.info(`Generating schema from ${datasetIds.length} datasets using Actor ${schemaGeneratorActorId}...`);
+
             const run = await this.client.actor(schemaGeneratorActorId).call({
                 datasetIds: datasetIds
             }, {

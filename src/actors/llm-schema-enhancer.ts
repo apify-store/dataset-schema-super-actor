@@ -1,3 +1,5 @@
+import { log } from 'apify';
+
 interface EnhancementInput {
     actorName: string;
     datasetSchema: any;
@@ -13,8 +15,8 @@ interface EnhancementResult {
 export class LLMSchemaEnhancer {
     async enhanceSchema(input: EnhancementInput): Promise<EnhancementResult> {
         try {
-            console.log('Enhancing schema with Claude Sonnet 4...');
-            
+            log.info('Enhancing schema with Claude Sonnet 4...');
+
             // Validate input
             if (!input.actorName || !input.datasetSchema) {
                 return {
@@ -59,9 +61,9 @@ export class LLMSchemaEnhancer {
             
             // Prepare the prompt for schema enrichment
             const prompt = this.createPrompt(input.actorName, input.datasetSchema, generateViews);
-            
-            console.log('Calling Claude Sonnet 4 via OpenRouter...');
-            
+
+            log.info('Calling Claude Sonnet 4 via OpenRouter...');
+
             // Call Claude Sonnet 4 via OpenRouter with timeout
             const response = await fetch('https://openrouter.apify.actor/api/v1/chat/completions', {
                 method: 'POST',
@@ -98,8 +100,8 @@ export class LLMSchemaEnhancer {
             }
             
             const content = data.choices[0].message.content;
-            console.log('Response received from Claude Sonnet 4');
-            
+            log.info('Response received from Claude Sonnet 4');
+
             // Try to extract JSON from the response
             let enrichedSchema;
             try {
@@ -112,7 +114,7 @@ export class LLMSchemaEnhancer {
                     enrichedSchema = JSON.parse(content);
                 }
             } catch (parseError) {
-                console.error('Failed to parse JSON from Claude response:', parseError);
+                log.error('Failed to parse JSON from Claude response:', { error: parseError });
                 return {
                     success: false,
                     error: `Failed to parse enriched schema from Claude response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`
@@ -126,16 +128,16 @@ export class LLMSchemaEnhancer {
                     error: 'Enriched schema does not follow Apify Actor specification format'
                 };
             }
-            
-            console.log('Enriched schema validated successfully');
-            
+
+            log.info('Enriched schema validated successfully');
+
             return {
                 success: true,
                 enhancedSchema: enrichedSchema
             };
             
         } catch (error) {
-            console.error('Error processing schema enrichment:', error);
+            log.error('Error processing schema enrichment:', { error });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error during schema enhancement'

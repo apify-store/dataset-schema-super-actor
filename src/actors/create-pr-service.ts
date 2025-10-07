@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { log } from 'apify';
 
 export interface CreatePRInput {
     datasetSchema: any;
@@ -49,7 +50,7 @@ export interface DatasetField {
 // Centralized error handling
 function handleError(context: string, error: unknown): never {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
+    log.error(`${context}: ${message}`);
     throw new Error(`${context}: ${message}`);
 }
 
@@ -67,25 +68,25 @@ export class CreatePRService {
 
     async run(): Promise<CreatePROutput> {
         try {
-            console.log('Starting Create PR Service...');
-            console.log('Input:', JSON.stringify(this.input, null, 2));
+            log.info('Starting Create PR Service...');
+            log.info('Input:', { input: this.input });
 
             const details: any = {};
 
             // Step 1: Parse GitHub URL
-            console.log('Step 1: Parsing GitHub URL...');
+            log.info('Step 1: Parsing GitHub URL...');
             const repoInfo = this.parseGitHubUrl(this.input.githubLink);
             if (!repoInfo) {
                 throw new Error('Invalid GitHub URL provided');
             }
-            console.log('Repository:', `${repoInfo.owner}/${repoInfo.repo}`);
+            log.info('Repository:', { owner: repoInfo.owner, repo: repoInfo.repo });
 
             // Step 2: Get default branch and fetch existing actor.json from GitHub
-            console.log('Step 2: Getting default branch...');
+            log.info('Step 2: Getting default branch...');
             const defaultBranch = await this.getDefaultBranch(repoInfo.owner, repoInfo.repo);
-            console.log('Default branch:', defaultBranch);
+            log.info('Default branch:', { branch: defaultBranch });
 
-            console.log('Step 3: Finding actor.json in monorepo...');
+            log.info('Step 3: Finding actor.json in monorepo...');
             const actorJsonResponse = await this.findActorJson(
                 repoInfo.owner,
                 repoInfo.repo,
@@ -94,39 +95,39 @@ export class CreatePRService {
             
             const originalActorJsonContent = actorJsonResponse.content;
             const actorJsonPath = actorJsonResponse.path;
-            console.log('Found actor.json at:', actorJsonPath);
-            
+            log.info('Found actor.json at:', { path: actorJsonPath });
+
             // Parse to get basic info for logging
             const originalActorJson = JSON.parse(originalActorJsonContent);
-            console.log('Original actor.json loaded:', originalActorJson.name);
+            log.info('Original actor.json loaded:', { name: originalActorJson.name });
 
             // Step 4: Extract views from original actor.json
-            console.log('Step 4: Extracting views from original actor.json...');
+            log.info('Step 4: Extracting views from original actor.json...');
             let originalViews: any = null;
             if (originalActorJson.storages?.dataset?.views) {
                 originalViews = originalActorJson.storages.dataset.views;
-                console.log('Found views in original actor.json:', Object.keys(originalViews));
+                log.info('Found views in original actor.json:', Object.keys(originalViews));
             } else {
-                console.log('No views found in original actor.json');
+                log.info('No views found in original actor.json');
             }
 
             // Step 5: Process dataset schema
-            console.log('Step 5: Processing dataset schema...');
-            console.log('Dataset schema input:', JSON.stringify(this.input.datasetSchema, null, 2));
-            
+            log.info('Step 5: Processing dataset schema...');
+            log.info('Dataset schema input:', { schema: this.input.datasetSchema });
+
             // Check if input is already a complete JSON Schema or needs conversion
             let datasetSchema: any;
             
             if (this.input.datasetSchema.properties && this.input.datasetSchema.type === 'object') {
                 // Input is already a complete JSON Schema
-                console.log('Input is a complete JSON Schema, using directly');
+                log.info('Input is a complete JSON Schema, using directly');
 
                 // Create dataset schema with original views (if available) or generate new ones
                 if (originalViews) {
-                    console.log('Using original views from actor.json');
+                    log.info('Using original views from actor.json');
                     datasetSchema = this.generateDatasetSchemaFromJsonSchema(this.input.datasetSchema, originalViews);
                 } else {
-                    console.log('Generating new views from input schema');
+                    log.info('Generating new views from input schema');
                     const fieldsForViews = Object.entries(this.input.datasetSchema.properties).map(([name, prop]: [string, any]) => ({
                         name,
                         type: Array.isArray(prop.type) ? prop.type[0] : prop.type,
@@ -139,20 +140,20 @@ export class CreatePRService {
                 }
             } else if (this.input.datasetSchema.fields && Array.isArray(this.input.datasetSchema.fields)) {
                 // Input has fields array, convert to JSON Schema
-                console.log('Input has fields array, converting to JSON Schema');
+                log.info('Input has fields array, converting to JSON Schema');
 
                 // Create dataset schema with original views (if available) or generate new ones
                 if (originalViews) {
-                    console.log('Using original views from actor.json');
+                    log.info('Using original views from actor.json');
                     datasetSchema = this.generateDatasetSchema(this.input.datasetSchema, originalViews);
                 } else {
-                    console.log('Generating new views from input fields');
+                    log.info('Generating new views from input fields');
                     const views = this.generateViewsFromFields(this.input.datasetSchema.fields);
                     datasetSchema = this.generateDatasetSchema(this.input.datasetSchema, views);
                 }
             } else if (this.input.datasetSchema.fields && this.input.datasetSchema.fields.properties) {
                 // Input has fields.properties structure (from LLM Schema Enhancer)
-                console.log('Input has fields.properties structure, converting to JSON Schema');
+                log.info('Input has fields.properties structure, converting to JSON Schema');
 
                 // Extract the properties from fields.properties
                 const jsonSchema = {
@@ -165,10 +166,10 @@ export class CreatePRService {
 
                 // Create dataset schema with original views (if available) or generate new ones
                 if (originalViews) {
-                    console.log('Using original views from actor.json');
+                    log.info('Using original views from actor.json');
                     datasetSchema = this.generateDatasetSchemaFromJsonSchema(jsonSchema, originalViews);
                 } else {
-                    console.log('Generating new views from input schema');
+                    log.info('Generating new views from input schema');
                     const fieldsForViews = Object.entries(jsonSchema.properties).map(([name, prop]: [string, any]) => ({
                         name,
                         type: Array.isArray(prop.type) ? prop.type[0] : prop.type,
@@ -184,32 +185,32 @@ export class CreatePRService {
             }
             
             details.datasetSchema = datasetSchema;
-            console.log('Dataset schema processed with', Object.keys(datasetSchema.fields.properties).length, 'fields');
+            log.info(`Dataset schema processed with ${Object.keys(datasetSchema.fields.properties).length} fields`);
 
             // Step 6: Update actor.json surgically (preserving formatting)
-            console.log('Step 6: Updating actor.json surgically...');
+            log.info('Step 6: Updating actor.json surgically...');
             const updatedActorJsonContent = this.updateActorJsonSurgically(originalActorJsonContent);
             const updatedActorJson = JSON.parse(updatedActorJsonContent);
             details.actorJson = updatedActorJson;
-            console.log('Actor.json updated surgically with dataset reference');
+            log.info('Actor.json updated surgically with dataset reference');
 
             // Step 7: Create new branch
             const branchName = `dataset-from-ai-${Date.now()}`;
-            console.log(`Step 7: Creating ${branchName} branch...`);
+            log.info(`Step 7: Creating ${branchName} branch...`);
             await this.createBranch(
                 repoInfo.owner,
                 repoInfo.repo,
                 branchName,
                 defaultBranch
             );
-            console.log(`Branch ${branchName} created`);
+            log.info(`Branch ${branchName} created`);
 
             // Step 8: Commit files to the new branch
-            console.log('Step 8: Committing files...');
+            log.info('Step 8: Committing files...');
             // Ensure dataset_schema.json is placed in the same directory as actor.json
             const datasetSchemaPath = actorJsonPath.replace(/actor\.json$/, 'dataset_schema.json');
-            console.log('Dataset schema will be created at:', datasetSchemaPath);
-            
+            log.info('Dataset schema will be created at:', { datasetSchemaPath });
+
             const files = [
                 {
                     path: actorJsonPath,
@@ -221,11 +222,11 @@ export class CreatePRService {
                 }
             ];
 
-            console.log('Files prepared for commit:');
+            log.info('Files prepared for commit:');
             files.forEach((file, index) => {
-                console.log(`  ${index + 1}. ${file.path}`);
-                console.log(`     Content length: ${file.content.length} characters`);
-                console.log(`     Content preview: ${file.content.substring(0, 150)}...`);
+                log.info(`  ${index + 1}. ${file.path}`);
+                log.info(`     Content length: ${file.content.length} characters`);
+                log.info(`     Content preview: ${file.content.substring(0, 150)}...`);
             });
 
             await this.commitFiles(
@@ -240,10 +241,10 @@ export class CreatePRService {
 - Remove views from actor.json (moved to dataset schema)`
             );
 
-            console.log('Files committed successfully');
+            log.info('Files committed successfully');
 
             // Step 9: Create pull request
-            console.log('Step 9: Creating pull request...');
+            log.info('Step 9: Creating pull request...');
             const prResult = await this.createPullRequest(
                 repoInfo.owner,
                 repoInfo.repo,
@@ -256,7 +257,7 @@ export class CreatePRService {
             );
 
             details.prInfo = prResult;
-            console.log('PR created successfully:', prResult.html_url);
+            log.info('PR created successfully:', { url: prResult.html_url });
 
             return {
                 success: true,
@@ -264,7 +265,7 @@ export class CreatePRService {
                 prInfo: prResult
             };
         } catch (error) {
-            console.error('Create PR Service failed:', error);
+            log.error('Create PR Service failed:', { error });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -285,7 +286,7 @@ export class CreatePRService {
             }
             return null;
         } catch (error) {
-            console.error('Failed to parse GitHub URL:', error);
+            log.error('Failed to parse GitHub URL:', { error });
             return null;
         }
     }
@@ -304,7 +305,7 @@ export class CreatePRService {
 
     private async findActorJson(owner: string, repo: string, branch: string): Promise<{ content: string; path: string }> {
         try {
-            console.log(`Searching for actor.json in ${owner}/${repo} on branch ${branch}`);
+            log.info(`Searching for actor.json in ${owner}/${repo} on branch ${branch}`);
 
             // First, let's see what's in the root directory
             try {
@@ -316,20 +317,22 @@ export class CreatePRService {
                 });
 
                 if (Array.isArray(rootResponse.data)) {
-                    console.log('Root directory contents:', rootResponse.data.map(item => `${item.type}: ${item.name}`).join(', '));
+                    log.info('Root directory contents:', {
+                        items: rootResponse.data.map((item) => ({ type: item.type, name: item.name })),
+                    });
                 }
             } catch (error) {
-                console.log('Could not list root directory:', error);
+                log.info('Could not list root directory:', { error });
             }
 
             // Extract actor name from technical name for targeted search
             const actorName = this.input.actorTechnicalName?.split('/').pop();
-            console.log(`Looking for actor-specific actor.json for: ${actorName}`);
+            log.info(`Looking for actor-specific actor.json for: ${actorName}`);
 
             // PRIORITY 1: Search for actor-specific actor.json first (most specific)
             if (actorName) {
-                console.log('Priority 1: Searching for actor-specific actor.json...');
-                
+                log.info('Priority 1: Searching for actor-specific actor.json...');
+
                 // Search in actors directory for the specific actor
                 try {
                     const actorsResponse = await this.octokit.rest.repos.getContent({
@@ -340,20 +343,20 @@ export class CreatePRService {
                     });
 
                     if (Array.isArray(actorsResponse.data)) {
-                        console.log('Actors found:', actorsResponse.data.map(item => item.name).join(', '));
-                        
+                        log.info('Actors found:', { names: actorsResponse.data.map((item) => item.name) });
+
                         // Look for exact match first
                         const exactMatch = actorsResponse.data.find(item => 
                             item.type === 'dir' && item.name === actorName
                         );
                         
                         if (exactMatch) {
-                            console.log(`Found exact actor directory: ${exactMatch.name}`);
-                            
+                            log.info(`Found exact actor directory: ${exactMatch.name}`);
+
                             // Check for .actor/actor.json in the specific actor directory
                             const actorJsonPath = `actors/${exactMatch.name}/.actor/actor.json`;
                             try {
-                                console.log(`Checking: ${actorJsonPath}`);
+                                log.info(`Checking: ${actorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
                                     owner,
                                     repo,
@@ -362,18 +365,18 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
+                                    log.info(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: actorJsonPath };
                                 }
                             } catch (error) {
-                                console.log(`Not found: ${actorJsonPath}`);
+                                log.info(`Not found: ${actorJsonPath}`);
                             }
 
                             // Also check for actor.json directly in the actor directory
                             const directActorJsonPath = `actors/${exactMatch.name}/actor.json`;
                             try {
-                                console.log(`Checking: ${directActorJsonPath}`);
+                                log.info(`Checking: ${directActorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
                                     owner,
                                     repo,
@@ -382,12 +385,12 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
+                                    log.info(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: directActorJsonPath };
                                 }
                             } catch (error) {
-                                console.log(`Not found: ${directActorJsonPath}`);
+                                log.info(`Not found: ${directActorJsonPath}`);
                             }
                         }
 
@@ -398,12 +401,12 @@ export class CreatePRService {
                         );
 
                         for (const match of partialMatches) {
-                            console.log(`Checking partial match: ${match.name}`);
-                            
+                            log.info(`Checking partial match: ${match.name}`);
+
                             // Check for .actor/actor.json
                             const actorJsonPath = `actors/${match.name}/.actor/actor.json`;
                             try {
-                                console.log(`Checking: ${actorJsonPath}`);
+                                log.info(`Checking: ${actorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
                                     owner,
                                     repo,
@@ -412,18 +415,18 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
+                                    log.info(`✅ Found actor-specific actor.json at: ${actorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: actorJsonPath };
                                 }
                             } catch (error) {
-                                console.log(`Not found: ${actorJsonPath}`);
+                                log.info(`Not found: ${actorJsonPath}`);
                             }
 
                             // Check for direct actor.json
                             const directActorJsonPath = `actors/${match.name}/actor.json`;
                             try {
-                                console.log(`Checking: ${directActorJsonPath}`);
+                                log.info(`Checking: ${directActorJsonPath}`);
                                 const response = await this.octokit.rest.repos.getContent({
                                     owner,
                                     repo,
@@ -432,17 +435,17 @@ export class CreatePRService {
                                 });
 
                                 if (!Array.isArray(response.data) && response.data.type === 'file') {
-                                    console.log(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
+                                    log.info(`✅ Found actor-specific actor.json at: ${directActorJsonPath}`);
                                     const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
                                     return { content, path: directActorJsonPath };
                                 }
                             } catch (error) {
-                                console.log(`Not found: ${directActorJsonPath}`);
+                                log.info(`Not found: ${directActorJsonPath}`);
                             }
                         }
                     }
                 } catch (error) {
-                    console.log('Actors directory not found or accessible');
+                    log.info('Actors directory not found or accessible');
                 }
             }
 
@@ -482,10 +485,10 @@ export class CreatePRService {
         message: string
     ): Promise<void> {
         try {
-            console.log(`Committing ${files.length} files to branch ${branch}:`);
+            log.info(`Committing ${files.length} files to branch ${branch}:`);
             files.forEach((file, index) => {
-                console.log(`  File ${index + 1}: ${file.path} (${file.content.length} chars)`);
-                console.log(`    Preview: ${file.content.substring(0, 100)}...`);
+                log.info(`  File ${index + 1}: ${file.path} (${file.content.length} chars)`);
+                log.info(`    Preview: ${file.content.substring(0, 100)}...`);
             });
 
             const tree = [];
@@ -493,14 +496,14 @@ export class CreatePRService {
 
             // Create blobs for each file
             for (const file of files) {
-                console.log(`Creating blob for ${file.path}...`);
+                log.info(`Creating blob for ${file.path}...`);
                 const blob = await this.octokit.rest.git.createBlob({
                     owner,
                     repo,
                     content: Buffer.from(file.content).toString('base64'),
                     encoding: 'base64'
                 });
-                console.log(`Blob created for ${file.path}: ${blob.data.sha}`);
+                log.info(`Blob created for ${file.path}: ${blob.data.sha}`);
                 blobs.push(blob.data);
 
                 tree.push({
@@ -512,27 +515,27 @@ export class CreatePRService {
             }
 
             // Get the current commit
-            console.log(`Getting current commit for branch ${branch}...`);
+            log.info(`Getting current commit for branch ${branch}...`);
             const currentCommit = await this.octokit.rest.repos.getCommit({
                 owner,
                 repo,
                 ref: branch
             });
-            console.log(`Current commit: ${currentCommit.data.sha}`);
+            log.info(`Current commit: ${currentCommit.data.sha}`);
 
             // Create new tree with base_tree to preserve existing files
-            console.log(`Creating tree with ${tree.length} files using base_tree...`);
-            console.log('Tree entries:', JSON.stringify(tree, null, 2));
+            log.info(`Creating tree with ${tree.length} files using base_tree...`);
+            log.info('Tree entries:', { tree });
             const newTree = await this.octokit.rest.git.createTree({
                 owner,
                 repo,
                 base_tree: currentCommit.data.commit.tree.sha,
                 tree: tree as any
             });
-            console.log(`Tree created: ${newTree.data.sha}`);
+            log.info(`Tree created: ${newTree.data.sha}`);
 
             // Create new commit
-            console.log(`Creating commit with message: ${message}`);
+            log.info(`Creating commit with message: ${message}`);
             const newCommit = await this.octokit.rest.git.createCommit({
                 owner,
                 repo,
@@ -540,17 +543,17 @@ export class CreatePRService {
                 tree: newTree.data.sha,
                 parents: [currentCommit.data.sha]
             });
-            console.log(`Commit created: ${newCommit.data.sha}`);
+            log.info(`Commit created: ${newCommit.data.sha}`);
 
             // Update branch reference
-            console.log(`Updating branch ${branch} to point to new commit...`);
+            log.info(`Updating branch ${branch} to point to new commit...`);
             await this.octokit.rest.git.updateRef({
                 owner,
                 repo,
                 ref: `heads/${branch}`,
                 sha: newCommit.data.sha
             });
-            console.log(`Branch ${branch} updated successfully`);
+            log.info(`Branch ${branch} updated successfully`);
         } catch (error) {
             handleError('Failed to commit files', error);
         }

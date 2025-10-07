@@ -1,3 +1,5 @@
+import { log } from 'apify';
+
 interface TestInputConfig {
     minimalInput: Record<string, any>;
     normalInput: Record<string, any>;
@@ -19,8 +21,8 @@ interface ValidationResult {
 
 export class InputValidator {
     async validateInputs(targetActorId: string, inputs: TestInputConfig): Promise<ValidationResult> {
-        console.log(`Validating inputs for Actor: ${targetActorId}`);
-        
+        log.info(`Validating inputs for Actor: ${targetActorId}`);
+
         const variants = {
             minimal: inputs.minimalInput,
             normal: inputs.normalInput,
@@ -37,8 +39,8 @@ export class InputValidator {
         // Validate each input variant using pattern matching instead of actual Actor runs
         for (const [variantName, input] of Object.entries(variants)) {
             try {
-                console.log(`Validating ${variantName} input...`);
-                
+                log.info(`Validating ${variantName} input...`);
+
                 // Use pattern-based validation instead of actual Actor runs
                 const validationResult = this.validateInputPattern(input);
                 
@@ -47,14 +49,14 @@ export class InputValidator {
                         variant: variantName,
                         success: true
                     });
-                    console.log(`✅ ${variantName} input validation passed`);
+                    log.info(`✅ ${variantName} input validation passed`);
                 } else {
                     results.push({
                         variant: variantName,
                         success: false,
                         error: validationResult.error
                     });
-                    console.log(`❌ ${variantName} input validation failed: ${validationResult.error}`);
+                    log.info(`❌ ${variantName} input validation failed: ${validationResult.error}`);
                 }
                 
             } catch (error) {
@@ -64,7 +66,7 @@ export class InputValidator {
                     success: false,
                     error: errorMessage
                 });
-                console.log(`❌ ${variantName} input validation failed:`, errorMessage);
+                log.info(`❌ ${variantName} input validation failed:`, { error: errorMessage });
             }
         }
 
@@ -83,10 +85,12 @@ export class InputValidator {
             .filter(r => r.success)
             .map(r => r.variant);
 
-        console.log(`Validation Summary: ${successfulRuns}/${totalRuns} inputs valid`);
-        console.log(`Successful inputs: ${successfulInputs.join(', ')}`);
+        log.info(`Validation Summary: ${successfulRuns}/${totalRuns} inputs valid`);
+        log.info(`Successful inputs: ${successfulInputs.join(', ')}`);
         if (failedInputs.length > 0) {
-            console.log(`Failed inputs: ${failedInputs.map(f => `${f.variant} (${f.error})`).join(', ')}`);
+            log.info('Failed inputs', {
+                failedInputs: failedInputs.map((f) => ({ variant: f.variant, error: f.error })),
+            });
         }
 
         return {

@@ -362,11 +362,8 @@ async function main() {
         // Store results
         await Actor.setValue('OUTPUT', result);
         await Actor.pushData(result);
-        
-        console.log('Dataset Schema SuperActor completed');
-        console.log('Results:', JSON.stringify(result, null, 2));
-        
-        await Actor.exit();
+
+        await Actor.exit('Dataset Schema SuperActor completed');
     } catch (error) {
         console.error('💥 Actor execution failed:', error);
         await Actor.fail(String(error));

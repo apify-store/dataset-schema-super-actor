@@ -530,7 +530,6 @@ export class CreatePRService {
                 tree: tree as any
             });
             console.log(`Tree created: ${newTree.data.sha}`);
-            console.log('Tree response:', JSON.stringify(newTree.data, null, 2));
 
             // Create new commit
             console.log(`Creating commit with message: ${message}`);

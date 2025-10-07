@@ -39,7 +39,6 @@ export class DatasetSchemaGenerator {
 
                 const run = await this.client.actor(targetActorId).call(input, {
                     timeout: 300000, // 5 minutes timeout
-                    memory: 2048
                 });
                 
                 if (run && run.defaultDatasetId) {
@@ -136,7 +135,6 @@ export class DatasetSchemaGenerator {
                 datasetIds: datasetIds
             }, {
                 timeout: 300000, // 5 minutes timeout
-                memory: 2048
             });
             
             if (!run || !run.defaultDatasetId) {

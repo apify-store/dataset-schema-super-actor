@@ -369,7 +369,7 @@ async function main() {
         await Actor.exit();
     } catch (error) {
         console.error('💥 Actor execution failed:', error);
-        await Actor.exit('FAILED');
+        await Actor.fail(String(error));
     }
 }
 

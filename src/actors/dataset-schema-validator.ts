@@ -1,4 +1,4 @@
-import { ApifyClient } from 'apify';
+import { ApifyClient, log } from 'apify';
 
 interface ValidationInput {
     actorId: string;
@@ -40,7 +40,7 @@ interface ValidatorOutput {
 // Centralized error handling
 function handleError(context: string, error: unknown): never {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
+    log.error(`${context}:`, { message });
     throw new Error(`${context}: ${message}`);
 }
 
@@ -54,13 +54,13 @@ export class DatasetSchemaValidator {
     }
 
     async processValidation(input: ValidationInput): Promise<ValidatorOutput> {
-        console.log('Starting dataset schema validation process...');
-        
+        log.info('Starting dataset schema validation process...');
+
         // Query Redash for dataset IDs
         const datasetIds = await this.queryRedashForDatasetIds(input);
         
         if (datasetIds.length === 0) {
-            console.log('No datasets found for the given criteria');
+            log.info('No datasets found for the given criteria');
             return {
                 actorId: input.actorId,
                 totalDatasets: 0,
@@ -83,12 +83,14 @@ export class DatasetSchemaValidator {
         }
 
         // Validate all datasets in a single call
-        console.log(`Validating ${datasetIds.length} datasets in single call...`);
-        
+        log.info(`Validating ${datasetIds.length} datasets in single call...`);
+
         try {
             const validationResult = await this.validateAllDatasets(datasetIds, input.datasetSchema);
-            console.log(`Validation completed: ${validationResult.validDatasets} valid, ${validationResult.invalidDatasets} invalid, ${validationResult.notFoundDatasets} not found`);
-            
+            log.info(
+                `Validation completed: ${validationResult.validDatasets} valid, ${validationResult.invalidDatasets} invalid, ${validationResult.notFoundDatasets} not found`,
+            );
+
             return {
                 actorId: input.actorId,
                 totalDatasets: datasetIds.length,
@@ -109,7 +111,7 @@ export class DatasetSchemaValidator {
                 }
             };
         } catch (error) {
-            console.error('Validation failed:', error);
+            log.error('Validation failed:', { error });
             handleError('Validation failed', error);
         }
     }
@@ -123,8 +125,8 @@ export class DatasetSchemaValidator {
         failedResults: ValidationResult[];
     }> {
         try {
-            console.log(`Calling validation Actor with ${datasetIds.length} dataset IDs...`);
-            
+            log.info(`Calling validation Actor with ${datasetIds.length} dataset IDs...`);
+
             // Call the validation actor with all dataset IDs at once
             const validationRun = await this.client.actor('jaroslavhejlek/validate-dataset-with-json-schema').call({
                 datasetIds: datasetIds,
@@ -136,11 +138,11 @@ export class DatasetSchemaValidator {
             const validationDataset = this.client.dataset(defaultDatasetId);
             const { items: validationResults } = await validationDataset.listItems();
 
-            console.log(`Validation Actor returned ${validationResults.length} results`);
+            log.info(`Validation Actor returned ${validationResults.length} results`);
 
             // If validation Actor returns 0 results, it means all datasets passed validation
             if (validationResults.length === 0) {
-                console.log('Validation Actor returned 0 results - all datasets passed validation');
+                log.info('Validation Actor returned 0 results - all datasets passed validation');
                 return {
                     validDatasets: datasetIds.length,
                     invalidDatasets: 0,
@@ -189,15 +191,15 @@ export class DatasetSchemaValidator {
             };
 
         } catch (error) {
-            console.error('Validation failed:', error);
+            log.error('Validation failed:', { error });
             handleError('Validation failed', error);
         }
     }
 
     private async resolveActorId(technicalName: string): Promise<string> {
         try {
-            console.log(`Resolving technical name "${technicalName}" to Actor ID...`);
-            
+            log.info(`Resolving technical name "${technicalName}" to Actor ID...`);
+
             // Use Apify SDK to get Actor details
             const actor = this.client.actor(technicalName);
             const actorData = await actor.get();
@@ -206,10 +208,10 @@ export class DatasetSchemaValidator {
                 throw new Error(`No Actor ID found for technical name: ${technicalName}`);
             }
 
-            console.log(`Resolved "${technicalName}" to Actor ID: ${actorData.id}`);
+            log.info(`Resolved "${technicalName}" to Actor ID: ${actorData.id}`);
             return actorData.id;
         } catch (error) {
-            console.error('Actor ID resolution failed:', error);
+            log.error('Actor ID resolution failed:', { error });
             throw error;
         }
     }
@@ -227,11 +229,11 @@ export class DatasetSchemaValidator {
 
             // Resolve technical name to Actor ID
             const actorId = await this.resolveActorId(technicalName);
-            console.log(`Querying Redash for actor ${actorId} (${technicalName})...`);
+            log.info(`Querying Redash for actor ${actorId} (${technicalName})...`);
 
             // Step 1: Try to get cached results first
             const cachedUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}`;
-            console.log(`Trying cached results first: ${cachedUrl}`);
+            log.info(`Trying cached results first: ${cachedUrl}`);
 
             let executeResponse = await fetch(cachedUrl, {
                 headers: {
@@ -242,9 +244,9 @@ export class DatasetSchemaValidator {
 
             // If no cached results, execute the query
             if (!executeResponse.ok || executeResponse.status === 404) {
-                console.log('No cached results, executing query...');
+                log.info('No cached results, executing query...');
                 const executeUrl = `https://charts.apify.com/api/queries/2039/results`;
-                console.log(`Executing query at: ${executeUrl}`);
+                log.info(`Executing query at: ${executeUrl}`);
 
                 executeResponse = await fetch(executeUrl, {
                     method: 'POST',
@@ -267,18 +269,18 @@ export class DatasetSchemaValidator {
 
             if (!executeResponse.ok) {
                 const errorText = await executeResponse.text();
-                console.error(`Query execute error: ${errorText}`);
+                log.error(`Query execute error: ${errorText}`);
                 handleError('Failed to execute query', `HTTP error! status: ${executeResponse.status}, response: ${errorText}`);
             }
 
             const executeData = await executeResponse.json();
-            console.log('Query execute response:', executeData);
+            log.info('Query execute response:', executeData);
 
             // Check if we got cached results directly
             if (executeData?.query_result?.data?.rows) {
-                console.log('Got cached results directly');
+                log.info('Got cached results directly');
                 const datasetIds = executeData.query_result.data.rows.map((row: any) => row.default_dataset_id || row.dataset_id || row.id).filter(Boolean);
-                console.log(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
+                log.info(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
                 return datasetIds;
             }
 
@@ -288,7 +290,7 @@ export class DatasetSchemaValidator {
                 handleError('Job ID not found', 'No job ID in execute response');
             }
 
-            console.log(`Polling job ${jobId} for completion...`);
+            log.info(`Polling job ${jobId} for completion...`);
             let jobCompleted = false;
             let attempts = 0;
             const maxAttempts = 30; // 5 minutes max
@@ -307,16 +309,16 @@ export class DatasetSchemaValidator {
 
                 if (!jobResponse.ok) {
                     const errorText = await jobResponse.text();
-                    console.error(`Job status error: ${errorText}`);
+                    log.error(`Job status error: ${errorText}`);
                     continue;
                 }
 
                 const jobData = await jobResponse.json();
-                console.log(`Job status attempt ${attempts}:`, jobData.job?.status);
+                log.info(`Job status attempt ${attempts}:`, jobData.job?.status);
 
                 if (jobData.job?.status === 3) { // Success
                     jobCompleted = true;
-                    console.log('Job completed successfully');
+                    log.info('Job completed successfully');
                     // Store the job data for later use
                     executeData.job = jobData.job;
                 } else if (jobData.job?.status === 4) { // Error
@@ -335,7 +337,7 @@ export class DatasetSchemaValidator {
             }
 
             const resultsUrl = `https://charts.apify.com/api/query_results/${queryResultId}.json?api_key=${redashApiKey}`;
-            console.log(`Fetching results from: ${resultsUrl}`);
+            log.info(`Fetching results from: ${resultsUrl}`);
 
             const resultsResponse = await fetch(resultsUrl, {
                 headers: {
@@ -346,23 +348,23 @@ export class DatasetSchemaValidator {
 
             if (!resultsResponse.ok) {
                 const errorText = await resultsResponse.text();
-                console.error(`Results fetch error: ${errorText}`);
+                log.error(`Results fetch error: ${errorText}`);
                 handleError('Redash results fetch failed', `HTTP error! status: ${resultsResponse.status}, response: ${errorText}`);
             }
 
             const resultsData = await resultsResponse.json();
-            console.log('Query results:', resultsData);
+            log.info('Query results:', resultsData);
 
             if (!resultsData?.query_result?.data?.rows) {
                 handleError('Redash results validation failed', 'Invalid results structure');
             }
 
             const datasetIds = resultsData.query_result.data.rows.map((row: any) => row.default_dataset_id || row.dataset_id || row.id).filter(Boolean);
-            
-            console.log(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
+
+            log.info(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
             return datasetIds;
         } catch (error) {
-            console.error('Redash query error details:', error);
+            log.error('Redash query error details:', { error });
             handleError('Redash query failed', error);
         }
     }

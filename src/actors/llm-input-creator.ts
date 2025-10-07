@@ -1,3 +1,5 @@
+import { log } from 'apify';
+
 interface BaseTestInput {
     maxItems?: number;
     resultsLimit?: number;
@@ -37,16 +39,16 @@ interface TestInputConfig {
 // Centralized error handling utility
 function handleError(context: string, error: unknown): never {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
+    log.error(`${context}: ${message}`);
     throw new Error(`${context}: ${message}`);
 }
 
 export class LLMInputCreator {
     async generateTestInputs(actorTechnicalName: string, feedback?: string): Promise<TestInputConfig> {
         const prompt = this.createPrompt(actorTechnicalName, feedback);
-        
-        console.log('Calling OpenRouter standby service...');
-        
+
+        log.info('Calling OpenRouter standby service...');
+
         try {
             const response = await fetch('https://openrouter.apify.actor/api/v1/chat/completions', {
                 method: 'POST',
@@ -66,7 +68,7 @@ export class LLMInputCreator {
                 })
             });
 
-            console.log('OpenRouter response received');
+            log.info('OpenRouter response received');
 
             if (!response.ok) {
                 handleError('OpenRouter API request failed', `HTTP error! status: ${response.status}`);
@@ -79,8 +81,8 @@ export class LLMInputCreator {
             }
 
             const content = data.choices[0].message.content;
-            console.log('Parsing JSON response...');
-            console.log('Raw response content:', content);
+            log.info('Parsing JSON response...');
+            log.info('Raw response content:', content);
 
             // Extract JSON from code block (model consistently returns JSON in ```json blocks)
             const jsonMatch = content.match(/```json\s*(\{[\s\S]*?\})\s*```/);
@@ -88,8 +90,8 @@ export class LLMInputCreator {
                 handleError('JSON extraction failed', 'No JSON found in OpenRouter response');
             }
 
-            console.log('Extracted JSON:', jsonMatch[0]);
-            
+            log.info('Extracted JSON:', jsonMatch[0]);
+
             // Clean up the JSON string - remove any trailing characters
             let jsonString = jsonMatch[1].trim();
             
@@ -108,8 +110,8 @@ export class LLMInputCreator {
             if (endIndex !== -1) {
                 jsonString = jsonString.substring(0, endIndex + 1);
             }
-            
-            console.log('Cleaned JSON:', jsonString);
+
+            log.info('Cleaned JSON:', { json: jsonString });
             const testConfigs = JSON.parse(jsonString);
             
             // Validate the response structure

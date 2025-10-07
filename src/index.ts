@@ -1,4 +1,4 @@
-import { Actor } from 'apify';
+import { Actor, log } from 'apify';
 
 // Import integrated Actor modules
 import { LLMInputCreator } from './actors/llm-input-creator.js';
@@ -45,7 +45,7 @@ interface SuperActorOutput {
 // Centralized error handling
 function handleError(context: string, error: unknown): never {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`${context}:`, message);
+    log.error(`${context}: ${message}`);
     throw new Error(`${context}: ${message}`);
 }
 
@@ -69,9 +69,9 @@ class DatasetSchemaSuperActor {
     }
 
     async run(): Promise<SuperActorOutput> {
-        console.log('🚀 Starting Dataset Schema SuperActor...');
-        console.log(`Target Actor: ${this.input.actorTechnicalName}`);
-        console.log(`GitHub Repo: ${this.input.githubLink}`);
+        log.info('🚀 Starting Dataset Schema SuperActor...');
+        log.info(`Target Actor: ${this.input.actorTechnicalName}`);
+        log.info(`GitHub Repo: ${this.input.githubLink}`);
 
         const details: SuperActorOutput['details'] = {
             actorName: this.input.actorTechnicalName
@@ -79,27 +79,27 @@ class DatasetSchemaSuperActor {
 
         try {
             // Step 1: Generate test inputs
-            console.log('\n🤖 Step 1: Generating test inputs...');
+            log.info('\n🤖 Step 1: Generating test inputs...');
             const testInputs = await this.generateTestInputs();
             this.progress.inputGeneration = 'completed';
 
             // Step 2: Generate initial schema
-            console.log('\n📊 Step 2: Generating initial dataset schema...');
+            log.info('\n📊 Step 2: Generating initial dataset schema...');
             const initialSchema = await this.generateInitialSchema(testInputs);
             this.progress.schemaGeneration = 'completed';
 
             // Step 3: Enhance schema with AI
-            console.log('\n✨ Step 3: Enhancing schema with AI...');
+            log.info('\n✨ Step 3: Enhancing schema with AI...');
             const enhancedSchema = await this.enhanceSchema(initialSchema);
             this.progress.schemaEnhancement = 'completed';
 
             // Step 4: Validate schema against real data
-            console.log('\n🔍 Step 4: Validating schema against real data...');
+            log.info('\n🔍 Step 4: Validating schema against real data...');
             const validationResults = await this.validateSchema(enhancedSchema);
             this.progress.schemaValidation = 'completed';
 
             // Step 5: Create GitHub PR
-            console.log('\n📝 Step 5: Creating GitHub PR...');
+            log.info('\n📝 Step 5: Creating GitHub PR...');
             const prResult = await this.createPR(enhancedSchema);
             this.progress.prCreation = 'completed';
 
@@ -107,8 +107,8 @@ class DatasetSchemaSuperActor {
             details.validationResults = validationResults;
             details.prInfo = prResult.prInfo;
 
-            console.log('\n🎉 Dataset Schema SuperActor completed successfully!');
-            console.log(`PR URL: ${prResult.prUrl}`);
+            log.info('\n🎉 Dataset Schema SuperActor completed successfully!');
+            log.info(`PR URL: ${prResult.prUrl}`);
 
             return {
                 success: true,
@@ -118,8 +118,8 @@ class DatasetSchemaSuperActor {
             };
 
         } catch (error) {
-            console.error('\n💥 Dataset Schema SuperActor failed:', error);
-            
+            log.error('\n💥 Dataset Schema SuperActor failed:', { error });
+
             // Re-throw the error to be caught by the main function
             throw error;
         }
@@ -135,31 +135,33 @@ class DatasetSchemaSuperActor {
 
             do {
                 attempt++;
-                console.log(`\n🔄 Input Generation Attempt ${attempt}/${maxAttempts}`);
-                
+                log.info(`\n🔄 Input Generation Attempt ${attempt}/${maxAttempts}`);
+
                 // Generate test inputs
                 const feedback = attempt > 1 ? this.inputValidator.generateValidationFeedback(validationResult) : undefined;
                 testInputs = await inputCreator.generateTestInputs(this.input.actorTechnicalName, feedback);
-                
-                console.log('✅ Test inputs generated successfully');
-                console.log(`- Minimal input: ${Object.keys(testInputs.minimalInput).length} fields`);
-                console.log(`- Normal input: ${Object.keys(testInputs.normalInput).length} fields`);
-                console.log(`- Maximal input: ${Object.keys(testInputs.maximalInput).length} fields`);
-                console.log(`- Edge input: ${Object.keys(testInputs.edgeInput).length} fields`);
-                
+
+                log.info('✅ Test inputs generated successfully');
+                log.info(`- Minimal input: ${Object.keys(testInputs.minimalInput).length} fields`);
+                log.info(`- Normal input: ${Object.keys(testInputs.normalInput).length} fields`);
+                log.info(`- Maximal input: ${Object.keys(testInputs.maximalInput).length} fields`);
+                log.info(`- Edge input: ${Object.keys(testInputs.edgeInput).length} fields`);
+
                 // Validate inputs
-                console.log('\n🔍 Validating generated inputs...');
+                log.info('\n🔍 Validating generated inputs...');
                 validationResult = await this.inputValidator.validateInputs(this.input.actorTechnicalName, testInputs);
                 
                 if (validationResult.overallSuccess) {
-                    console.log('✅ Input validation passed - proceeding with schema generation');
+                    log.info('✅ Input validation passed - proceeding with schema generation');
                     break;
                 } else {
-                    console.log(`❌ Input validation failed: ${validationResult.successfulRuns}/${validationResult.totalRuns} inputs valid`);
+                    log.info(
+                        `❌ Input validation failed: ${validationResult.successfulRuns}/${validationResult.totalRuns} inputs valid`,
+                    );
                     if (attempt < maxAttempts) {
-                        console.log('🔄 Retrying with feedback...');
+                        log.info('🔄 Retrying with feedback...');
                     } else {
-                        console.log('❌ Max retry attempts reached');
+                        log.info('❌ Max retry attempts reached');
                     }
                 }
                 
@@ -195,8 +197,8 @@ class DatasetSchemaSuperActor {
 
             // Validate run results
             const validation = schemaGenerator.validateRunResults(runResults);
-            console.log(`Validation: ${validation.summary}`);
-            
+            log.info(`Validation: ${validation.summary}`);
+
             if (!validation.overallSuccess) {
                 this.progress.schemaGeneration = 'failed';
                 handleError('Schema generation failed', `Insufficient successful runs: ${validation.summary}`);
@@ -204,8 +206,8 @@ class DatasetSchemaSuperActor {
 
             // Collect dataset IDs
             const datasetIds = await schemaGenerator.collectDatasetIds(runResults);
-            console.log(`Found ${datasetIds.length} dataset(s): ${datasetIds.join(', ')}`);
-            
+            log.info(`Found ${datasetIds.length} dataset(s): ${datasetIds.join(', ')}`);
+
             if (datasetIds.length === 0) {
                 this.progress.schemaGeneration = 'failed';
                 handleError('Schema generation failed', 'No datasets found from successful runs');
@@ -220,7 +222,7 @@ class DatasetSchemaSuperActor {
                 handleError('Schema generation failed', schemaResult.error);
             }
 
-            console.log('✅ Initial schema generated successfully');
+            log.info('✅ Initial schema generated successfully');
             return schemaResult;
             
         } catch (error) {
@@ -231,9 +233,9 @@ class DatasetSchemaSuperActor {
 
     private async enhanceSchema(initialSchema: any): Promise<any> {
         try {
-            console.log('Enhancing schema with Claude Sonnet 4...');
-            console.log('Initial schema structure:', JSON.stringify(initialSchema, null, 2));
-            
+            log.info('Enhancing schema with Claude Sonnet 4...');
+            log.info('Initial schema structure:', { schema: initialSchema });
+
             const schemaEnhancer = new LLMSchemaEnhancer();
             
             const enhancementResult = await schemaEnhancer.enhanceSchema({
@@ -242,14 +244,14 @@ class DatasetSchemaSuperActor {
                 generateViews: this.input.generateViews || false
             });
 
-            console.log('Enhancement result:', JSON.stringify(enhancementResult, null, 2));
+            log.info('Enhancement result:', { result: enhancementResult });
 
             if (!enhancementResult.success) {
                 this.progress.schemaEnhancement = 'failed';
                 handleError('Schema enhancement failed', enhancementResult.error);
             }
 
-            console.log('✅ Schema enhanced successfully');
+            log.info('✅ Schema enhanced successfully');
             if (!enhancementResult.enhancedSchema) {
                 this.progress.schemaEnhancement = 'failed';
                 handleError('Schema enhancement failed', 'No enhanced schema returned');
@@ -258,7 +260,7 @@ class DatasetSchemaSuperActor {
             
         } catch (error) {
             this.progress.schemaEnhancement = 'failed';
-            console.error('Schema enhancement error details:', error);
+            log.error('Schema enhancement error details:', { error });
             throw error; // Re-throw to be caught by the main run() method
         }
     }
@@ -277,8 +279,12 @@ class DatasetSchemaSuperActor {
                 runsPerUser: parseInt(this.input.runsPerUser || '1', 10)
             });
 
-            console.log(`Validation Summary: ${validationResult.summary.validDatasets}/${validationResult.totalDatasets} datasets valid (${(validationResult.summary.successRate * 100).toFixed(1)}% success rate)`);
-            
+            log.info(
+                `Validation Summary: ${validationResult.summary.validDatasets}/${
+                    validationResult.totalDatasets
+                } datasets valid (${(validationResult.summary.successRate * 100).toFixed(1)}% success rate)`,
+            );
+
             // Validate success rate if there are datasets to validate
             // FAIL if ANY dataset fails validation (success rate must be 100%)
             if (validationResult.totalDatasets > 0 && validationResult.summary.successRate < 1.0) {
@@ -292,7 +298,7 @@ class DatasetSchemaSuperActor {
                 handleError('Schema validation failed', 'No datasets found for validation - validation is required and cannot be skipped');
             }
 
-            console.log('✅ Schema validation passed');
+            log.info('✅ Schema validation passed');
             return validationResult;
             
         } catch (error) {
@@ -318,7 +324,7 @@ class DatasetSchemaSuperActor {
                 handleError('PR creation failed', prResult.error);
             }
 
-            console.log('✅ PR created successfully');
+            log.info('✅ PR created successfully');
             return prResult;
             
         } catch (error) {
@@ -354,7 +360,7 @@ async function main() {
             handleError('Input validation failed', 'redashToken is required');
         }
 
-        console.log('Starting Dataset Schema SuperActor...');
+        log.info('Starting Dataset Schema SuperActor...');
 
         const superActor = new DatasetSchemaSuperActor(input!);
         const result = await superActor.run();
@@ -365,13 +371,13 @@ async function main() {
 
         await Actor.exit('Dataset Schema SuperActor completed');
     } catch (error) {
-        console.error('💥 Actor execution failed:', error);
+        log.error('💥 Actor execution failed:', { error });
         await Actor.fail(String(error));
     }
 }
 
 // Run the main function
 main().catch((error) => {
-    console.error('💥 Fatal error in main function:', error);
+    log.error('💥 Fatal error in main function:', { error });
     process.exit(1);
 });

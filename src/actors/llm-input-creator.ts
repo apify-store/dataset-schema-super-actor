@@ -123,10 +123,10 @@ export class LLMInputCreator {
 
             // Log the generated inputs for debugging
             log.info('✅ Generated test inputs for debugging:');
-            log.info('📝 MINIMAL INPUT:', JSON.stringify(testConfigs.minimalInput, null, 2));
-            log.info('📝 NORMAL INPUT:', JSON.stringify(testConfigs.normalInput, null, 2));
-            log.info('📝 MAXIMAL INPUT:', JSON.stringify(testConfigs.maximalInput, null, 2));
-            log.info('📝 EDGE INPUT:', JSON.stringify(testConfigs.edgeInput, null, 2));
+            log.info('📝 MINIMAL INPUT:', { input: testConfigs.minimalInput });
+            log.info('📝 NORMAL INPUT:', { input: testConfigs.normalInput });
+            log.info('📝 MAXIMAL INPUT:', { input: testConfigs.maximalInput });
+            log.info('📝 EDGE INPUT:', { input: testConfigs.edgeInput });
             log.info(`🎯 Target Actor: ${testConfigs.targetActorId}`);
 
             return testConfigs;

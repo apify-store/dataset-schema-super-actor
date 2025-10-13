@@ -200,13 +200,14 @@ Input Variation Guidelines:
 - For arrays: Test different array lengths and content types
 - For enums: Test different enum values across the 4 inputs
 
-**PLATFORM-SPECIFIC GUIDELINES:**
-- For Google Maps Actors: Use real Place IDs or valid Google Maps URLs
-- For Instagram Actors: Use real usernames, hashtags, or post URLs
-- For Twitter Actors: Use real usernames, hashtags, or tweet IDs
-- For YouTube Actors: Use real video IDs or channel URLs
-- For LinkedIn Actors: Use real company names or profile URLs
-- For Facebook Actors: Use real page names or post URLs
+
+- For everything: Use VERIFIED real usernames, hashtags, or post URLs that actually exist. If direct access to find real URLs is blocked, search for documented/archived URLs from news articles, social media mentions, or other sources. Never generate URLs that follow correct format but don't exist.
+
+**URL VERIFICATION REQUIREMENT:**
+- All URLs used in test inputs MUST be verified as actually existing
+- If you cannot verify URL existence due to access restrictions, explicitly state this limitation
+- Prefer fewer real URLs over more fake URLs
+- When real URLs cannot be found, document this constraint in your response
 
 **CRITICAL: Each configuration must use realistic, valid data that the Actor can actually process**
 

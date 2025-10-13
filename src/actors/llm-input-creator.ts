@@ -232,6 +232,19 @@ Input Variation Guidelines:
 - If you cannot find real URLs, use fewer URLs rather than fake ones
 - When in doubt, use well-known public URLs (news sites, public profiles, etc.)
 
+**SMART URL GENERATION PROCESS:**
+1. ANALYZE the Actor's purpose and domain
+2. IDENTIFY what type of content it scrapes
+3. FIND real examples of that content type
+4. USE those real URLs in your inputs
+5. If you cannot find real examples, use empty arrays []
+
+**ANALYSIS QUESTIONS:**
+- What does this Actor scrape? (products, profiles, posts, reviews, etc.)
+- What platform does it target? (e-commerce, social media, maps, etc.)
+- What are real examples of that content type?
+- Can I find actual URLs for those examples?
+
 **WHAT MAKES A URL REAL:**
 - ✅ URLs that point to actual content you can verify exists
 - ✅ URLs from well-known public figures, companies, or news sites
@@ -240,6 +253,13 @@ Input Variation Guidelines:
 - ❌ URLs with placeholder usernames like "fakeuser", "testuser", "user123"
 - ❌ URLs with made-up post IDs or status numbers
 - ❌ URLs to example.com, test.com, or other placeholder domains
+
+**FALLBACK STRATEGY:**
+- If you cannot find real content: use empty arrays []
+- If you cannot verify URLs: use empty arrays []
+- If you cannot access the platform: use empty arrays []
+- Empty arrays are better than fake URLs
+- The Actor can still work with empty inputs
 
 **URL VERIFICATION REQUIREMENT:**
 - All URLs used in test inputs MUST be verified as actually existing with real content

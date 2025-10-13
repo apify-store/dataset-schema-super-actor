@@ -224,10 +224,24 @@ Input Variation Guidelines:
 - For enums: Test different enum values across the 4 inputs
 
 
-- For everything: Use VERIFIED real usernames, hashtags, or post URLs that actually exist. If direct access to find real URLs is blocked, search for documented/archived URLs from news articles, social media mentions, or other sources. Never generate URLs that follow correct format but don't exist.
+**🚨 CRITICAL URL REQUIREMENT - NO FAKE URLs ALLOWED:**
+- ALL URLs MUST be REAL and ACTUALLY EXIST with real content
+- Do NOT generate fake URLs with made-up IDs like "ABC123def45", "user_999999", "post_xyz123"
+- Do NOT use placeholder URLs like "https://example.com", "https://test.com"
+- URLs must point to REAL content that the Actor can actually scrape/process
+- If you cannot find real URLs, use fewer URLs rather than fake ones
+- When in doubt, use well-known public URLs (news sites, public profiles, etc.)
+
+**REAL URL EXAMPLES:**
+- ✅ "https://www.instagram.com/p/CX8Y9Z2ABC123/" (real Instagram post)
+- ✅ "https://twitter.com/elonmusk/status/1234567890" (real Twitter post)
+- ✅ "https://www.linkedin.com/in/jeffweiner08" (real LinkedIn profile)
+- ❌ "https://www.instagram.com/p/ABC123def45/" (fake ID)
+- ❌ "https://example.com/user123" (placeholder)
+- ❌ "https://twitter.com/fakeuser/status/999999999" (fake user/post)
 
 **URL VERIFICATION REQUIREMENT:**
-- All URLs used in test inputs MUST be verified as actually existing
+- All URLs used in test inputs MUST be verified as actually existing with real content
 - If you cannot verify URL existence due to access restrictions, explicitly state this limitation
 - Prefer fewer real URLs over more fake URLs
 - When real URLs cannot be found, document this constraint in your response
@@ -240,6 +254,9 @@ Before generating the JSON output, verify that:
 2. No generic field names were used (like "startUrls", "urls", "links")
 3. All required fields are included
 4. All field types match the schema requirements
+5. **ALL URLs are REAL and actually exist with real content**
+6. **NO fake URLs with made-up IDs were used**
+7. **NO placeholder URLs were used**
 
 **COMMON FIELD NAME MISTAKES TO AVOID:**
 - ❌ "startUrls" → ✅ Use actual schema field name (e.g., "directUrls", "urls", "links")

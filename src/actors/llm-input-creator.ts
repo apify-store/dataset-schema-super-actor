@@ -145,22 +145,37 @@ ${feedback}
 Please address these specific issues in your new input generation.` : '';
 
         return `Use the following steps with ${actorTechnicalName}:${feedbackSection}
-Step 1: Get Actor Details Use the get-actor-details tool to understand the Actor and its complete input schema:
 
-Actor description and purpose
-Full input schema with all parameters
-Parameter types, requirements, and constraints
-Default values and examples
+**CRITICAL FIRST STEP: Get Actor Details**
+Use the get-actor-details tool to understand the Actor and its complete input schema:
 
-Step 2: Analyze Input Schema Thoroughly analyze the input schema to identify:
+- Actor description and purpose
+- Full input schema with all parameters
+- Parameter types, requirements, and constraints
+- Default values and examples
+- **EXACT FIELD NAMES** (this is crucial!)
 
-Required parameters
-Optional parameters
-Parameter types (string, number, boolean, array, object)
-Enum values and constraints
-Default values and examples
+**STEP 2: Analyze Input Schema**
+Thoroughly analyze the input schema to identify:
 
-Step 3: Create 4 Test Input Configurations Design 4 different input configurations to exercise the Actor comprehensively. DO NOT run the Actor - only prepare the input objects:
+- Required parameters
+- Optional parameters
+- Parameter types (string, number, boolean, array, object)
+- Enum values and constraints
+- Default values and examples
+- **MOST IMPORTANTLY: The exact field names used in the schema**
+
+**STEP 3: Create 4 Test Input Configurations**
+Design 4 different input configurations to exercise the Actor comprehensively. DO NOT run the Actor - only prepare the input objects:
+
+**🚨 CRITICAL FIELD NAME REQUIREMENT:**
+- You MUST use the EXACT field names from the Actor's input schema
+- Do NOT use generic field names like "startUrls", "urls", "links", etc.
+- Do NOT guess field names - use ONLY the names from the schema
+- If the schema shows "directUrls", use "directUrls" (not "startUrls")
+- If the schema shows "maxResults", use "maxResults" (not "maxItems")
+- If the schema shows "includeMetadata", use "includeMetadata" (not "includeDetails")
+- **Field name mismatches will cause Actor failures**
 
 **GENERIC INPUT GENERATION GUIDELINES:**
 
@@ -218,6 +233,19 @@ Input Variation Guidelines:
 - When real URLs cannot be found, document this constraint in your response
 
 **CRITICAL: Each configuration must use realistic, valid data that the Actor can actually process**
+
+**FINAL VALIDATION CHECK:**
+Before generating the JSON output, verify that:
+1. All field names match exactly what's in the Actor's input schema
+2. No generic field names were used (like "startUrls", "urls", "links")
+3. All required fields are included
+4. All field types match the schema requirements
+
+**COMMON FIELD NAME MISTAKES TO AVOID:**
+- ❌ "startUrls" → ✅ Use actual schema field name (e.g., "directUrls", "urls", "links")
+- ❌ "maxItems" → ✅ Use actual schema field name (e.g., "maxResults", "limit", "count")
+- ❌ "includeDetails" → ✅ Use actual schema field name (e.g., "includeMetadata", "includeStats")
+- ❌ "searchTerms" → ✅ Use actual schema field name (e.g., "queries", "keywords", "terms")
 
 Output Format: Return the results in this exact JSON structure:
 {

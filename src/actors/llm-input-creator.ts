@@ -232,19 +232,22 @@ Input Variation Guidelines:
 - If you cannot find real URLs, use fewer URLs rather than fake ones
 - When in doubt, use well-known public URLs (news sites, public profiles, etc.)
 
-**REAL URL EXAMPLES:**
-- ✅ "https://www.instagram.com/p/CX8Y9Z2ABC123/" (real Instagram post)
-- ✅ "https://twitter.com/elonmusk/status/1234567890" (real Twitter post)
-- ✅ "https://www.linkedin.com/in/jeffweiner08" (real LinkedIn profile)
-- ❌ "https://www.instagram.com/p/ABC123def45/" (fake ID)
-- ❌ "https://example.com/user123" (placeholder)
-- ❌ "https://twitter.com/fakeuser/status/999999999" (fake user/post)
+**WHAT MAKES A URL REAL:**
+- ✅ URLs that point to actual content you can verify exists
+- ✅ URLs from well-known public figures, companies, or news sites
+- ✅ URLs that you can confirm have real content behind them
+- ❌ URLs with random IDs like "ABC123def45", "CX8Y9Z2ABC123", "xyz789"
+- ❌ URLs with placeholder usernames like "fakeuser", "testuser", "user123"
+- ❌ URLs with made-up post IDs or status numbers
+- ❌ URLs to example.com, test.com, or other placeholder domains
 
 **URL VERIFICATION REQUIREMENT:**
 - All URLs used in test inputs MUST be verified as actually existing with real content
+- You MUST be able to confirm the URL points to real, accessible content
 - If you cannot verify URL existence due to access restrictions, explicitly state this limitation
 - Prefer fewer real URLs over more fake URLs
 - When real URLs cannot be found, document this constraint in your response
+- **NEVER guess or make up URLs - only use URLs you can verify exist**
 
 **CRITICAL: Each configuration must use realistic, valid data that the Actor can actually process**
 

@@ -121,6 +121,14 @@ export class LLMInputCreator {
                 handleError('Response validation failed', 'Invalid JSON structure in response - missing required fields');
             }
 
+            // Log the generated inputs for debugging
+            log.info('✅ Generated test inputs for debugging:');
+            log.info('📝 MINIMAL INPUT:', JSON.stringify(testConfigs.minimalInput, null, 2));
+            log.info('📝 NORMAL INPUT:', JSON.stringify(testConfigs.normalInput, null, 2));
+            log.info('📝 MAXIMAL INPUT:', JSON.stringify(testConfigs.maximalInput, null, 2));
+            log.info('📝 EDGE INPUT:', JSON.stringify(testConfigs.edgeInput, null, 2));
+            log.info(`🎯 Target Actor: ${testConfigs.targetActorId}`);
+
             return testConfigs;
 
         } catch (error) {

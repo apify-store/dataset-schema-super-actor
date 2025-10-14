@@ -415,7 +415,7 @@ export class DatasetSchemaValidator {
                     datasetsWithSamples.push(datasetInfo);
                     log.info(`Sampled ${datasetInfo.sampleData.length} records from dataset ${datasetId}`);
                 } catch (error) {
-                    log.warn(`Failed to sample dataset ${datasetId}:`, { error });
+                    log.error(`Failed to sample dataset ${datasetId}:`, { error });
                     // Continue with other datasets
                 }
             }

@@ -152,11 +152,14 @@ export class LLMSchemaEnhancer {
         return `Enhance this dataset schema for Actor: ${actorName}
 
 **REQUIREMENTS:**
-1. Follow Apify Actor specification format
-2. Set all fields as nullable: true
-3. Empty required array
-4. Add realistic, anonymized examples
-5. Write clear field descriptions
+1. Follow Apify Actor specification format: https://docs.apify.com/platform/actors/development/actor-definition/dataset-schema/validation
+2. **ONLY enhance the existing fields** - use exactly these field names: ${Object.keys(schemaFields).join(', ')}
+3. **DO NOT add new fields** - only improve descriptions, examples, and formatting of existing fields
+4. **DO NOT rename or remove fields** - keep all field names identical to the original schema
+5. Set all fields as nullable: true
+6. Empty required array
+7. Add realistic, anonymized examples
+8. Write clear field descriptions
 
 **SCHEMA FORMAT:**
 \`\`\`json
@@ -200,9 +203,13 @@ Create relevant views with:
 - Flatten nested objects
 ` : '**VIEWS:** Leave empty - do not generate views'}
 
-**OUTPUT:** Return only the JSON schema, no other text.
+**OUTPUT:** Return only the JSON schema, no other text. Before returning, verify that:
+- All field names match exactly with the original dataset schema
+- No new fields were added
+- No fields were removed
+- Only descriptions, examples, and formatting were changed
 
-**INPUT SCHEMA:**
+**ORIGINAL DATASET SCHEMA TO ENHANCE:**
 \`\`\`json
 ${JSON.stringify({
     ...datasetSchema,

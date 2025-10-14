@@ -11,14 +11,34 @@ import { InputValidator } from './actors/input-validator.js';
 // Define input interface
 interface SuperActorInput {
     actorTechnicalName: string;
-    githubLink: string;
-    githubToken: string;
-    redashToken: string;
+    
+    // Step 1: Generate inputs
+    generateInputs?: boolean;
+    
+    // Step 2: Generate schema
+    generateSchema?: boolean;
+    existingMinimalInput?: string;
+    existingNormalInput?: string;
+    existingMaximalInput?: string;
+    existingEdgeInput?: string;
+    
+    // Step 3: Schema Enhancement
+    enhanceSchema?: boolean;
+    existingEnhancedSchema?: string;
     generateViews?: boolean;
+    
+    // Step 4: Schema Validation
+    validateSchema?: boolean;
+    redashToken?: string;
     daysBack?: string;
     maximumResults?: string;
     minimumResults?: string;
     runsPerUser?: string;
+    
+    // Step 5: GitHub PR Creation
+    createPR?: boolean;
+    githubLink?: string;
+    githubToken?: string;
 }
 
 // Define output interface
@@ -71,48 +91,84 @@ class DatasetSchemaSuperActor {
     async run(): Promise<SuperActorOutput> {
         log.info('🚀 Starting Dataset Schema SuperActor...');
         log.info(`Target Actor: ${this.input.actorTechnicalName}`);
-        log.info(`GitHub Repo: ${this.input.githubLink}`);
+        
+        // Log enabled steps
+        const enabledSteps = this.getEnabledSteps();
+        log.info(`Enabled steps: ${enabledSteps.join(', ')}`);
 
         const details: SuperActorOutput['details'] = {
             actorName: this.input.actorTechnicalName
         };
 
         try {
-            // Step 1: Generate test inputs
-            log.info('\n🤖 Step 1: Generating test inputs...');
-            const testInputs = await this.generateTestInputs();
-            this.progress.inputGeneration = 'completed';
+            let testInputs: any = null;
+            let initialSchema: any = null;
+            let enhancedSchema: any = null;
+            let validationResults: any = null;
+            let prResult: any = null;
 
-            // Step 2: Generate initial schema
-            log.info('\n📊 Step 2: Generating initial dataset schema...');
-            const initialSchema = await this.generateInitialSchema(testInputs);
-            this.progress.schemaGeneration = 'completed';
+            // Step 1: Generate test inputs (if enabled)
+            if (this.input.generateInputs) {
+                log.info('\n🤖 Step 1: Generating test inputs...');
+                testInputs = await this.generateTestInputs();
+                this.progress.inputGeneration = 'completed';
+            } else {
+                log.info('\n⏭️ Step 1: Skipped (generateInputs = false)');
+                this.progress.inputGeneration = 'skipped';
+            }
 
-            // Step 3: Enhance schema with AI
-            log.info('\n✨ Step 3: Enhancing schema with AI...');
-            const enhancedSchema = await this.enhanceSchema(initialSchema);
-            this.progress.schemaEnhancement = 'completed';
+            // Step 2: Generate initial schema (if enabled)
+            if (this.input.generateSchema) {
+                log.info('\n📊 Step 2: Generating initial dataset schema...');
+                initialSchema = await this.generateInitialSchema(testInputs);
+                this.progress.schemaGeneration = 'completed';
+            } else {
+                log.info('\n⏭️ Step 2: Skipped (generateSchema = false)');
+                this.progress.schemaGeneration = 'skipped';
+            }
 
-            // Step 4: Validate schema against real data
-            log.info('\n🔍 Step 4: Validating schema against real data...');
-            const validationResults = await this.validateSchema(enhancedSchema);
-            this.progress.schemaValidation = 'completed';
+            // Step 3: Enhance schema with AI (if enabled)
+            if (this.input.enhanceSchema) {
+                log.info('\n✨ Step 3: Enhancing schema with AI...');
+                enhancedSchema = await this.enhanceSchema(initialSchema);
+                this.progress.schemaEnhancement = 'completed';
+            } else {
+                log.info('\n⏭️ Step 3: Skipped (enhanceSchema = false)');
+                this.progress.schemaEnhancement = 'skipped';
+            }
 
-            // Step 5: Create GitHub PR
-            log.info('\n📝 Step 5: Creating GitHub PR...');
-            const prResult = await this.createPR(enhancedSchema);
-            this.progress.prCreation = 'completed';
+            // Step 4: Validate schema against real data (if enabled)
+            if (this.input.validateSchema) {
+                log.info('\n🔍 Step 4: Validating schema against real data...');
+                validationResults = await this.validateSchema(enhancedSchema);
+                this.progress.schemaValidation = 'completed';
+            } else {
+                log.info('\n⏭️ Step 4: Skipped (validateSchema = false)');
+                this.progress.schemaValidation = 'skipped';
+            }
+
+            // Step 5: Create GitHub PR (if enabled)
+            if (this.input.createPR) {
+                log.info('\n📝 Step 5: Creating GitHub PR...');
+                prResult = await this.createPR(enhancedSchema);
+                this.progress.prCreation = 'completed';
+            } else {
+                log.info('\n⏭️ Step 5: Skipped (createPR = false)');
+                this.progress.prCreation = 'skipped';
+            }
 
             details.generatedSchema = enhancedSchema;
             details.validationResults = validationResults;
-            details.prInfo = prResult.prInfo;
+            details.prInfo = prResult?.prInfo;
 
             log.info('\n🎉 Dataset Schema SuperActor completed successfully!');
-            log.info(`PR URL: ${prResult.prUrl}`);
+            if (prResult?.prUrl) {
+                log.info(`PR URL: ${prResult.prUrl}`);
+            }
 
             return {
                 success: true,
-                prUrl: prResult.prUrl,
+                prUrl: prResult?.prUrl,
                 progress: this.progress,
                 details
             };
@@ -123,6 +179,16 @@ class DatasetSchemaSuperActor {
             // Re-throw the error to be caught by the main function
             throw error;
         }
+    }
+
+    private getEnabledSteps(): string[] {
+        const steps: string[] = [];
+        if (this.input.generateInputs) steps.push('Generate Inputs');
+        if (this.input.generateSchema) steps.push('Generate Schema');
+        if (this.input.enhanceSchema) steps.push('Enhance Schema');
+        if (this.input.validateSchema) steps.push('Validate Schema');
+        if (this.input.createPR) steps.push('Create PR');
+        return steps;
     }
 
     private async generateTestInputs(): Promise<any> {
@@ -180,19 +246,53 @@ class DatasetSchemaSuperActor {
         }
     }
 
+    private hasExistingTestInputs(): boolean {
+        return !!(
+            this.input.existingMinimalInput?.trim() ||
+            this.input.existingNormalInput?.trim() ||
+            this.input.existingMaximalInput?.trim() ||
+            this.input.existingEdgeInput?.trim()
+        );
+    }
+
+    private parseExistingTestInputs(): any {
+        try {
+            return {
+                minimal: this.input.existingMinimalInput?.trim() ? JSON.parse(this.input.existingMinimalInput!) : null,
+                normal: this.input.existingNormalInput?.trim() ? JSON.parse(this.input.existingNormalInput!) : null,
+                maximal: this.input.existingMaximalInput?.trim() ? JSON.parse(this.input.existingMaximalInput!) : null,
+                edge: this.input.existingEdgeInput?.trim() ? JSON.parse(this.input.existingEdgeInput!) : null
+            };
+        } catch (error) {
+            handleError('Invalid existing test inputs', `Failed to parse existing test inputs as JSON: ${error}`);
+        }
+    }
+
     private async generateInitialSchema(testInputs: any): Promise<any> {
         try {
             const schemaGenerator = new DatasetSchemaGenerator();
             
-            // Run Actor with test inputs
-            const runResults = await schemaGenerator.runActorWithInputs(
-                this.input.actorTechnicalName,
-                {
+            // Use existing test inputs if provided, otherwise use generated ones
+            let inputsToUse: any;
+            if (this.hasExistingTestInputs()) {
+                log.info('Using existing test inputs provided by user');
+                inputsToUse = this.parseExistingTestInputs();
+            } else if (testInputs) {
+                log.info('Using generated test inputs from Step 1');
+                inputsToUse = {
                     minimal: testInputs.minimalInput,
                     normal: testInputs.normalInput,
                     maximal: testInputs.maximalInput,
                     edge: testInputs.edgeInput
-                }
+                };
+            } else {
+                handleError('Schema generation failed', 'No test inputs available. Either enable Step 1 (generateInputs) or provide existing test inputs.');
+            }
+            
+            // Run Actor with test inputs
+            const runResults = await schemaGenerator.runActorWithInputs(
+                this.input.actorTechnicalName,
+                inputsToUse
             );
 
             // Validate run results
@@ -233,6 +333,21 @@ class DatasetSchemaSuperActor {
 
     private async enhanceSchema(initialSchema: any): Promise<any> {
         try {
+            // Use existing enhanced schema if provided
+            if (this.input.existingEnhancedSchema?.trim()) {
+                log.info('Using existing enhanced schema provided by user');
+                try {
+                    return JSON.parse(this.input.existingEnhancedSchema);
+                } catch (error) {
+                    handleError('Invalid existing enhanced schema', `Failed to parse existing enhanced schema as JSON: ${error}`);
+                }
+            }
+            
+            // Check if we have initial schema to enhance
+            if (!initialSchema) {
+                handleError('Schema enhancement failed', 'No initial schema available. Either enable Step 2 (generateSchema) or provide existing enhanced schema.');
+            }
+            
             log.info('Enhancing schema with Claude Sonnet 4...');
             log.info('Initial schema structure:', { schema: initialSchema });
 
@@ -267,6 +382,16 @@ class DatasetSchemaSuperActor {
 
     private async validateSchema(enhancedSchema: any): Promise<any> {
         try {
+            // Check if we have schema to validate
+            if (!enhancedSchema) {
+                handleError('Schema validation failed', 'No enhanced schema available. Either enable Step 3 (enhanceSchema) or provide existing enhanced schema.');
+            }
+            
+            // Check if redash token is provided
+            if (!this.input.redashToken?.trim()) {
+                handleError('Schema validation failed', 'Redash API token is required for validation. Please provide redashToken.');
+            }
+            
             const validator = new DatasetSchemaValidator();
             
             const validationResult = await validator.processValidation({
@@ -309,6 +434,19 @@ class DatasetSchemaSuperActor {
 
     private async createPR(enhancedSchema: any): Promise<{ success: boolean; prUrl?: string; error?: string; prInfo?: any }> {
         try {
+            // Check if we have schema to create PR for
+            if (!enhancedSchema) {
+                handleError('PR creation failed', 'No enhanced schema available. Either enable Step 3 (enhanceSchema) or provide existing enhanced schema.');
+            }
+            
+            // Check if GitHub credentials are provided
+            if (!this.input.githubLink?.trim()) {
+                handleError('PR creation failed', 'GitHub repository link is required for PR creation. Please provide githubLink.');
+            }
+            if (!this.input.githubToken?.trim()) {
+                handleError('PR creation failed', 'GitHub token is required for PR creation. Please provide githubToken.');
+            }
+            
             const prService = new CreatePRService({
                 datasetSchema: enhancedSchema,
                 githubLink: this.input.githubLink,
@@ -350,14 +488,13 @@ async function main() {
         if (!input!.actorTechnicalName) {
             handleError('Input validation failed', 'actorTechnicalName is required');
         }
-        if (!input!.githubLink) {
-            handleError('Input validation failed', 'githubLink is required');
+
+        // Validate step-specific requirements
+        if (input!.validateSchema && !input!.redashToken) {
+            handleError('Input validation failed', 'redashToken is required when validateSchema is enabled');
         }
-        if (!input!.githubToken) {
-            handleError('Input validation failed', 'githubToken is required');
-        }
-        if (!input!.redashToken) {
-            handleError('Input validation failed', 'redashToken is required');
+        if (input!.createPR && (!input!.githubLink || !input!.githubToken)) {
+            handleError('Input validation failed', 'githubLink and githubToken are required when createPR is enabled');
         }
 
         log.info('Starting Dataset Schema SuperActor...');

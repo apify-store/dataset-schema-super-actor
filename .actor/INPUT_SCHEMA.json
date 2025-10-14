@@ -2,75 +2,151 @@
   "title": "Dataset Schema SuperActor Input",
   "type": "object",
   "schemaVersion": 1,
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
     "actorTechnicalName": {
       "title": "Actor Technical Name",
       "type": "string",
-      "description": "The technical name of the Actor (e.g., 'apify/web-scraper')",
-      "editor": "textfield",
-      "example": "apify/web-scraper"
+      "description": "The technical name of the Actor to generate schema for (e.g., 'compass/Instagram-Scraper')",
+      "pattern": "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$",
+      "editor": "textfield"
     },
-    "githubLink": {
-      "title": "GitHub Repository Link",
-      "type": "string",
-      "description": "The GitHub repository URL where the actor.json is located",
-      "editor": "textfield",
-      "example": "https://github.com/apify/web-scraper"
+    "generateInputs": {
+      "sectionCaption": "Step 1: Generate inputs",
+      "sectionDescription": "Generate test inputs for the target Actor.",
+      "title": "Generate Test Inputs",
+      "type": "boolean",
+      "prefill": true,
+      "description": "Generate test inputs for the Actor (Step 1)",
+      "editor": "checkbox"
     },
-    "githubToken": {
-      "title": "GitHub Token",
-      "type": "string",
-      "description": "GitHub personal access token with repo permissions",
-      "editor": "textfield",
-      "isSecret": true
+    "generateSchema": {
+      "sectionCaption": "Step 2: Generate schema",
+      "sectionDescription": "Generate initial dataset schema from Actor runs or provide existing inputs/schema.",
+      "title": "Generate Initial Schema",
+      "type": "boolean",
+      "prefill": true,
+      "description": "Generate initial dataset schema from Actor runs (Step 2)",
+      "editor": "checkbox"
     },
-    "redashToken": {
-      "title": "Redash API Key",
+    "existingMinimalInput": {
+      "title": "Existing Minimal Input (JSON)",
       "type": "string",
-      "description": "Redash API key for dataset validation",
-      "editor": "textfield",
-      "isSecret": true
+      "description": "Provide existing minimal test input as JSON. Leave empty to use generated input.",
+      "editor": "textarea"
+    },
+    "existingNormalInput": {
+      "title": "Existing Normal Input (JSON)",
+      "type": "string",
+      "description": "Provide existing normal test input as JSON. Leave empty to use generated input.",
+      "editor": "textarea"
+    },
+    "existingMaximalInput": {
+      "title": "Existing Maximal Input (JSON)",
+      "type": "string",
+      "description": "Provide existing maximal test input as JSON. Leave empty to use generated input.",
+      "editor": "textarea"
+    },
+    "existingEdgeInput": {
+      "title": "Existing Edge Input (JSON)",
+      "type": "string",
+      "description": "Provide existing edge test input as JSON. Leave empty to use generated input.",
+      "editor": "textarea"
+    },
+    "enhanceSchema": {
+      "sectionCaption": "Step 3: Schema Enhancement",
+      "sectionDescription": "Enhance schema using AI or provide existing enhanced schema.",
+      "title": "Enhance Schema with AI",
+      "type": "boolean",
+      "prefill": true,
+      "description": "Enhance schema using Claude Sonnet 4 (Step 3)",
+      "editor": "checkbox"
+    },
+    "existingEnhancedSchema": {
+      "title": "Existing Enhanced Schema (JSON)",
+      "type": "string",
+      "description": "Provide existing enhanced schema as JSON to skip Step 3. Leave empty to generate new enhanced schema.",
+      "editor": "textarea"
     },
     "generateViews": {
       "title": "Generate Views",
       "type": "boolean",
-      "description": "Generate view schemas for the Actor (Overview and context-specific views). If false, existing views from actor.json will be moved to dataset_schema.json",
-      "default": false,
+      "description": "Whether to generate dataset views in the schema. Skip if you already have views in the schema.",
       "editor": "checkbox"
     },
-    "daysBack": {
-      "title": "Days Back",
+    "validateSchema": {
+      "sectionCaption": "Step 4: Schema Validation",
+      "sectionDescription": "Validate schema against real dataset data.",
+      "title": "Validate Schema",
+      "type": "boolean",
+      "prefill": true,
+      "description": "Validate schema against real dataset data (Step 4)",
+      "editor": "checkbox"
+    },
+    "redashToken": {
+      "title": "Redash API Token",
       "type": "string",
-      "description": "Number of days back to query for datasets (1-30)",
+      "description": "Redash API token for querying dataset validation data",
+      "isSecret": true,
+      "editor": "textfield"
+    },
+    "daysBack": {
+      "title": "Days Back for Validation",
+      "type": "string",
+      "description": "Number of days back to look for datasets in validation",
       "default": "5",
-      "editor": "textfield",
-      "example": "5"
+      "pattern": "^[0-9]+$",
+      "editor": "textfield"
     },
     "maximumResults": {
-      "title": "Maximum Results",
+      "title": "Maximum Results for Validation",
       "type": "string",
-      "description": "Maximum number of datasets to validate (1-50)",
+      "description": "Maximum number of results to fetch for validation",
       "default": "10",
-      "editor": "textfield",
-      "example": "10"
+      "pattern": "^[0-9]+$",
+      "editor": "textfield"
     },
     "minimumResults": {
-      "title": "Minimum Results",
+      "title": "Minimum Results for Validation",
       "type": "string",
-      "description": "Minimum number of results required for validation (1+)",
+      "description": "Minimum number of results required for validation",
       "default": "1",
-      "editor": "textfield",
-      "example": "1"
+      "pattern": "^[0-9]+$",
+      "editor": "textfield"
     },
     "runsPerUser": {
-      "title": "Runs Per User",
+      "title": "Runs Per User for Validation",
       "type": "string",
-      "description": "Number of runs per user to consider (1+)",
-      "default": "1",
-      "editor": "textfield",
-      "example": "1"
+      "description": "Number of runs per user to consider in validation",
+      "default": "2",
+      "pattern": "^[0-9]+$",
+      "editor": "textfield"
+    },
+    "createPR": {
+      "sectionCaption": "Step 5: GitHub PR Creation",
+      "sectionDescription": "Create GitHub pull request with the schema. Requires GitHub credentials.",
+      "title": "Create GitHub PR",
+      "type": "boolean",
+      "prefill": true,
+      "description": "Create GitHub pull request with the schema (Step 5)",
+      "editor": "checkbox"
+    },
+    "githubLink": {
+      "title": "GitHub Repository Link",
+      "type": "string",
+      "description": "URL to the GitHub repository where the PR should be created",
+      "pattern": "^https://github\\.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/?$",
+      "editor": "textfield"
+    },
+    "githubToken": {
+      "title": "GitHub Personal Access Token",
+      "type": "string",
+      "description": "GitHub Personal Access Token for creating PRs",
+      "isSecret": true,
+      "editor": "textfield"
     }
   },
-  "required": ["actorTechnicalName", "githubLink", "githubToken", "redashToken"]
+  "required": [
+    "actorTechnicalName"
+  ]
 }
-

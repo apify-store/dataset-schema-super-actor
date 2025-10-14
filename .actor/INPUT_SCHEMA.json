@@ -74,6 +74,12 @@
       "description": "Whether to generate dataset views in the schema. Skip if you already have views in the schema.",
       "editor": "checkbox"
     },
+    "useRealDatasetIds": {
+      "title": "Use Real Dataset IDs Instead",
+      "type": "boolean",
+      "description": "Generate schema from real Redash datasets instead of test inputs. Requires Redash credentials from Step 4.",
+      "editor": "checkbox"
+    },
     "validateSchema": {
       "sectionCaption": "Step 4: Schema Validation",
       "sectionDescription": "Validate schema against real dataset data.",

@@ -1,5 +1,19 @@
 import { ApifyClient, log } from 'apify';
 
+interface SchemaGenerationResult {
+    success: boolean;
+    schema?: any;
+    error?: string;
+    datasetsUsed: DatasetInfo[];
+    validationDatasets: string[];
+}
+
+interface DatasetInfo {
+    datasetId: string;
+    itemCount: number;
+    sampleData: any[];
+}
+
 interface ValidationInput {
     actorId: string;
     datasetSchema: object;
@@ -366,6 +380,163 @@ export class DatasetSchemaValidator {
         } catch (error) {
             log.error('Redash query error details:', { error });
             handleError('Redash query failed', error);
+        }
+    }
+
+    async generateSchemaFromDatasets(input: ValidationInput): Promise<SchemaGenerationResult> {
+        try {
+            log.info('Starting schema generation from Redash datasets...');
+
+            // Query Redash for dataset IDs (reuse existing logic)
+            const datasetIds = await this.queryRedashForDatasetIds(input);
+            
+            if (datasetIds.length === 0) {
+                return {
+                    success: false,
+                    error: `No datasets found for Actor ${input.actorId}. Please ensure the Actor has recent dataset activity or use the test input method instead.`,
+                    datasetsUsed: [],
+                    validationDatasets: []
+                };
+            }
+
+            log.info(`Found ${datasetIds.length} datasets for schema generation`);
+
+            // Split datasets randomly 50/50
+            const { generationDatasets, validationDatasets } = this.splitDatasetsRandomly(datasetIds);
+            
+            log.info(`Using ${generationDatasets.length} datasets for generation, ${validationDatasets.length} for validation`);
+
+            // Sample data from generation datasets (50% of each)
+            const datasetsWithSamples: DatasetInfo[] = [];
+            
+            for (const datasetId of generationDatasets) {
+                try {
+                    const datasetInfo = await this.sampleDatasetData(datasetId);
+                    datasetsWithSamples.push(datasetInfo);
+                    log.info(`Sampled ${datasetInfo.sampleData.length} records from dataset ${datasetId}`);
+                } catch (error) {
+                    log.warn(`Failed to sample dataset ${datasetId}:`, { error });
+                    // Continue with other datasets
+                }
+            }
+
+            if (datasetsWithSamples.length === 0) {
+                return {
+                    success: false,
+                    error: 'Failed to sample data from any datasets. Please check dataset accessibility.',
+                    datasetsUsed: [],
+                    validationDatasets
+                };
+            }
+
+            // Generate schema from combined samples
+            const schema = await this.generateSchemaFromSamples(datasetsWithSamples);
+
+            log.info('Schema generated successfully from Redash datasets');
+
+            return {
+                success: true,
+                schema,
+                datasetsUsed: datasetsWithSamples,
+                validationDatasets
+            };
+
+        } catch (error) {
+            log.error('Error in schema generation from Redash datasets:', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error during schema generation',
+                datasetsUsed: [],
+                validationDatasets: []
+            };
+        }
+    }
+
+    private splitDatasetsRandomly(datasetIds: string[]): { generationDatasets: string[], validationDatasets: string[] } {
+        // Shuffle array randomly
+        const shuffled = [...datasetIds].sort(() => Math.random() - 0.5);
+        
+        // Split 50/50
+        const midPoint = Math.floor(shuffled.length / 2);
+        
+        return {
+            generationDatasets: shuffled.slice(0, midPoint),
+            validationDatasets: shuffled.slice(midPoint)
+        };
+    }
+
+    private async sampleDatasetData(datasetId: string): Promise<DatasetInfo> {
+        try {
+            // Get dataset info
+            const dataset = await this.client.dataset(datasetId).get();
+            const totalItems = dataset?.itemCount || 0;
+            
+            if (totalItems === 0) {
+                throw new Error('Dataset is empty');
+            }
+
+            // Calculate sample size (50% of dataset, max 1000 records)
+            const sampleSize = Math.min(Math.floor(totalItems * 0.5), 1000);
+            
+            log.info(`Sampling ${sampleSize} records from dataset ${datasetId} (total: ${totalItems})`);
+
+            // Get sample data
+            const { items } = await this.client.dataset(datasetId).listItems({
+                limit: sampleSize,
+                offset: 0
+            });
+
+            return {
+                datasetId,
+                itemCount: totalItems,
+                sampleData: items || []
+            };
+
+        } catch (error) {
+            log.error(`Error sampling dataset ${datasetId}:`, { error });
+            throw error;
+        }
+    }
+
+    private async generateSchemaFromSamples(datasetsWithSamples: DatasetInfo[]): Promise<any> {
+        try {
+            // Combine all sample data
+            const allSamples = datasetsWithSamples.flatMap(dataset => dataset.sampleData);
+            
+            if (allSamples.length === 0) {
+                throw new Error('No sample data available for schema generation');
+            }
+
+            log.info(`Generating schema from ${allSamples.length} combined sample records`);
+
+            // Use the existing schema generator Actor
+            const schemaGeneratorActorId = 'kMFja3BjKqZiO7pGc'; // This should be the actual schema generator Actor ID
+            
+            // Call the schema generator Actor with the sample data
+            const run = await this.client.actor(schemaGeneratorActorId).call({
+                sampleData: allSamples
+            });
+
+            if (!run.defaultDatasetId) {
+                throw new Error('Schema generator Actor did not produce a dataset');
+            }
+
+            // Get the generated schema from the dataset
+            const { items } = await this.client.dataset(run.defaultDatasetId).listItems();
+            
+            if (!items || items.length === 0) {
+                throw new Error('No schema generated by the schema generator Actor');
+            }
+
+            // The first item should contain the schema
+            const schema = items[0];
+            
+            log.info('Schema generated successfully from sample data');
+            return schema;
+
+        } catch (error) {
+            log.error('Error generating schema from samples:', { error });
+            throw error;
         }
     }
 }

@@ -1,4 +1,5 @@
 import { ApifyClient, log } from 'apify';
+import { DatasetSchemaValidator } from './dataset-schema-validator.js';
 
 interface RunResult {
     variant: string;
@@ -17,11 +18,13 @@ interface SchemaGenerationResult {
 
 export class DatasetSchemaGenerator {
     private client: ApifyClient;
+    private validator: DatasetSchemaValidator;
 
     constructor() {
         this.client = new ApifyClient({
             token: process.env.APIFY_TOKEN
         });
+        this.validator = new DatasetSchemaValidator();
     }
 
     async runActorWithInputs(targetActorId: string, variants: {
@@ -174,6 +177,43 @@ export class DatasetSchemaGenerator {
         } catch (error) {
             return {
                 error: error instanceof Error ? error.message : 'Unknown error during schema generation'
+            };
+        }
+    }
+
+    async generateSchemaFromRedashDatasets(actorId: string, redashApiKey: string, daysBack: number = 5, maximumResults: number = 10): Promise<SchemaGenerationResult> {
+        try {
+            log.info(`Generating schema from Redash datasets for Actor: ${actorId}`);
+
+            const result = await this.validator.generateSchemaFromDatasets({
+                actorId,
+                datasetSchema: {}, // Not needed for generation
+                redashApiKey,
+                daysBack,
+                maximumResults
+            });
+
+            if (!result.success) {
+                return {
+                    error: result.error,
+                    generatedBy: 'redash_datasets'
+                };
+            }
+
+            log.info('✅ Schema generated successfully from Redash datasets');
+            log.info(`Used ${result.datasetsUsed.length} datasets for generation`);
+            log.info(`Reserved ${result.validationDatasets.length} datasets for validation`);
+
+            return {
+                schema: result.schema,
+                generatedBy: 'redash_datasets'
+            };
+
+        } catch (error) {
+            log.error('Error generating schema from Redash datasets:', { error });
+            return {
+                error: error instanceof Error ? error.message : 'Unknown error during Redash schema generation',
+                generatedBy: 'redash_datasets'
             };
         }
     }

@@ -26,6 +26,7 @@ interface SuperActorInput {
     enhanceSchema?: boolean;
     existingEnhancedSchema?: string;
     generateViews?: boolean;
+    useRealDatasetIds?: boolean;
     
     // Step 4: Schema Validation
     validateSchema?: boolean;
@@ -120,7 +121,15 @@ class DatasetSchemaSuperActor {
             // Step 2: Generate initial schema (if enabled)
             if (this.input.generateSchema) {
                 log.info('\n📊 Step 2: Generating initial dataset schema...');
-                initialSchema = await this.generateInitialSchema(testInputs);
+                
+                if (this.input.useRealDatasetIds) {
+                    log.info('Using real Redash datasets for schema generation...');
+                    initialSchema = await this.generateSchemaFromRedashDatasets();
+                } else {
+                    log.info('Using test inputs for schema generation...');
+                    initialSchema = await this.generateInitialSchema(testInputs);
+                }
+                
                 this.progress.schemaGeneration = 'completed';
             } else {
                 log.info('\n⏭️ Step 2: Skipped (generateSchema = false)');
@@ -265,6 +274,37 @@ class DatasetSchemaSuperActor {
             };
         } catch (error) {
             handleError('Invalid existing test inputs', `Failed to parse existing test inputs as JSON: ${error}`);
+        }
+    }
+
+    private async generateSchemaFromRedashDatasets(): Promise<any> {
+        try {
+            // Check if redash token is provided
+            if (!this.input.redashToken?.trim()) {
+                handleError('Redash schema generation failed', 'Redash API token is required when useRealDatasetIds is enabled. Please provide redashToken.');
+            }
+            
+            const schemaGenerator = new DatasetSchemaGenerator();
+            
+            const result = await schemaGenerator.generateSchemaFromRedashDatasets(
+                this.input.actorTechnicalName,
+                this.input.redashToken,
+                parseInt(this.input.daysBack || '5', 10),
+                parseInt(this.input.maximumResults || '10', 10)
+            );
+            
+            if (result.error) {
+                this.progress.schemaGeneration = 'failed';
+                handleError('Redash schema generation failed', result.error);
+            }
+            
+            log.info('✅ Schema generated successfully from Redash datasets');
+            
+            return result.schema;
+            
+        } catch (error) {
+            this.progress.schemaGeneration = 'failed';
+            throw error; // Re-throw to be caught by the main run() method
         }
     }
 
@@ -490,8 +530,8 @@ async function main() {
         }
 
         // Validate step-specific requirements
-        if (input!.validateSchema && !input!.redashToken) {
-            handleError('Input validation failed', 'redashToken is required when validateSchema is enabled');
+        if ((input!.validateSchema || input!.useRealDatasetIds) && !input!.redashToken) {
+            handleError('Input validation failed', 'redashToken is required when validateSchema or useRealDatasetIds is enabled');
         }
         if (input!.createPR && (!input!.githubLink || !input!.githubToken)) {
             handleError('Input validation failed', 'githubLink and githubToken are required when createPR is enabled');

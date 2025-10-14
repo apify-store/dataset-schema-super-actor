@@ -53,6 +53,12 @@
       "description": "Provide existing edge test input as JSON. Leave empty to use generated input.",
       "editor": "textarea"
     },
+    "useRealDatasetIds": {
+      "title": "Use Real Dataset IDs Instead",
+      "type": "boolean",
+      "description": "Generate schema from real Redash datasets instead of test inputs. Requires Redash credentials from Step 4.",
+      "editor": "checkbox"
+    },
     "enhanceSchema": {
       "sectionCaption": "Step 3: Schema Enhancement",
       "sectionDescription": "Enhance schema using AI or provide existing enhanced schema.",
@@ -72,12 +78,6 @@
       "title": "Generate Views",
       "type": "boolean",
       "description": "Whether to generate dataset views in the schema. Skip if you already have views in the schema.",
-      "editor": "checkbox"
-    },
-    "useRealDatasetIds": {
-      "title": "Use Real Dataset IDs Instead",
-      "type": "boolean",
-      "description": "Generate schema from real Redash datasets instead of test inputs. Requires Redash credentials from Step 4.",
       "editor": "checkbox"
     },
     "validateSchema": {

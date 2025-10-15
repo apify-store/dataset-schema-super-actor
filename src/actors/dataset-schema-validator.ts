@@ -500,21 +500,23 @@ export class DatasetSchemaValidator {
 
     private async generateSchemaFromSamples(datasetsWithSamples: DatasetInfo[]): Promise<any> {
         try {
-            // Combine all sample data
-            const allSamples = datasetsWithSamples.flatMap(dataset => dataset.sampleData);
-            
-            if (allSamples.length === 0) {
-                throw new Error('No sample data available for schema generation');
+            if (datasetsWithSamples.length === 0) {
+                throw new Error('No datasets with samples available for schema generation');
             }
 
-            log.info(`Generating schema from ${allSamples.length} combined sample records`);
+            // Extract dataset IDs from the datasets that have samples
+            const datasetIds = datasetsWithSamples.map(dataset => dataset.datasetId);
+            
+            log.info(`Generating schema from ${datasetIds.length} datasets with samples`);
 
             // Use the existing schema generator Actor
             const schemaGeneratorActorId = 'kMFja3BjKqZiO7pGc'; // This should be the actual schema generator Actor ID
             
-            // Call the schema generator Actor with the sample data
+            // Call the schema generator Actor with the dataset IDs
             const run = await this.client.actor(schemaGeneratorActorId).call({
-                sampleData: allSamples
+                datasetIds: datasetIds
+            }, {
+                timeout: 300000, // 5 minutes timeout
             });
 
             if (!run.defaultDatasetId) {
@@ -531,7 +533,7 @@ export class DatasetSchemaValidator {
             // The first item should contain the schema
             const schema = items[0];
             
-            log.info('Schema generated successfully from sample data');
+            log.info('Schema generated successfully from dataset IDs');
             return schema;
 
         } catch (error) {

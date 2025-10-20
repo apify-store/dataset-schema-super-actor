@@ -22,6 +22,7 @@ interface ValidationInput {
     maximumResults?: number;
     minimumResults?: number;
     runsPerUser?: number;
+    chartLimit?: number;
 }
 
 interface ValidationResult {
@@ -238,7 +239,8 @@ export class DatasetSchemaValidator {
                 daysBack = 5,
                 maximumResults = 10,
                 minimumResults = 1,
-                runsPerUser = 1
+                runsPerUser = 1,
+                chartLimit = 1000
             } = input;
 
             // Resolve technical name to Actor ID
@@ -246,7 +248,7 @@ export class DatasetSchemaValidator {
             log.info(`Querying Redash for actor ${actorId} (${technicalName})...`);
 
             // Step 1: Try to get cached results first
-            const cachedUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}`;
+            const cachedUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}&limit=${chartLimit}`;
             log.info(`Trying cached results first: ${cachedUrl}`);
 
             let executeResponse = await fetch(cachedUrl, {
@@ -274,7 +276,8 @@ export class DatasetSchemaValidator {
                             "runs_per_user": runsPerUser.toString(),
                             "days_back": daysBack.toString(),
                             "minimum_results": minimumResults.toString(),
-                            "maximum_results": maximumResults.toString()
+                            "maximum_results": maximumResults.toString(),
+                            "limit": chartLimit.toString()
                         },
                         max_age: 0
                     })

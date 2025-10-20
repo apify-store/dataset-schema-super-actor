@@ -128,6 +128,14 @@
       "pattern": "^[0-9]+$",
       "editor": "textfield"
     },
+    "chartLimit": {
+      "title": "Chart Query Limit",
+      "type": "string",
+      "description": "Maximum number of rows to fetch from Redash chart query (0 = unlimited)",
+      "default": "1000",
+      "pattern": "^[0-9]+$",
+      "editor": "textfield"
+    },
     "createPR": {
       "sectionCaption": "Step 5: GitHub PR Creation",
       "sectionDescription": "Create GitHub pull request with the schema. Requires GitHub credentials.",

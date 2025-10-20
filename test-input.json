@@ -7,5 +7,6 @@
     "daysBack": "5",
     "maximumResults": "5",
     "minimumResults": "1",
-    "runsPerUser": "2"
+    "runsPerUser": "2",
+    "chartLimit": "500"
 }

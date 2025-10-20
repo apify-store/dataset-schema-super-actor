@@ -181,7 +181,7 @@ export class DatasetSchemaGenerator {
         }
     }
 
-    async generateSchemaFromRedashDatasets(actorId: string, redashApiKey: string, daysBack: number = 5, maximumResults: number = 10): Promise<SchemaGenerationResult> {
+    async generateSchemaFromRedashDatasets(actorId: string, redashApiKey: string, daysBack: number = 5, maximumResults: number = 10, chartLimit: number = 1000): Promise<SchemaGenerationResult> {
         try {
             log.info(`Generating schema from Redash datasets for Actor: ${actorId}`);
 
@@ -190,7 +190,8 @@ export class DatasetSchemaGenerator {
                 datasetSchema: {}, // Not needed for generation
                 redashApiKey,
                 daysBack,
-                maximumResults
+                maximumResults,
+                chartLimit
             });
 
             if (!result.success) {

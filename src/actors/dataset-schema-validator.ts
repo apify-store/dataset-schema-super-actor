@@ -22,7 +22,7 @@ interface ValidationInput {
     maximumResults?: number;
     minimumResults?: number;
     runsPerUser?: number;
-    chartLimit?: number;
+    maxResultsPerQuery?: number;
 }
 
 interface ValidationResult {
@@ -240,49 +240,36 @@ export class DatasetSchemaValidator {
                 maximumResults = 10,
                 minimumResults = 1,
                 runsPerUser = 1,
-                chartLimit = 1000
+                maxResultsPerQuery = 1000
             } = input;
 
             // Resolve technical name to Actor ID
             const actorId = await this.resolveActorId(technicalName);
             log.info(`Querying Redash for actor ${actorId} (${technicalName})...`);
 
-            // Step 1: Try to get cached results first
-            const cachedUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}&limit=${chartLimit}`;
-            log.info(`Trying cached results first: ${cachedUrl}`);
+            // Always execute query directly (skip cache check)
+            const executeUrl = `https://charts.apify.com/api/queries/2039/results`;
+            log.info(`Executing Redash query directly (skipping cache): ${executeUrl}`);
+            log.info(`Query parameters: actor_id=${actorId}, days_back=${daysBack}, maximum_results=${maximumResults}, minimum_results=${minimumResults}, runs_per_user=${runsPerUser}, limit=${maxResultsPerQuery}`);
 
-            let executeResponse = await fetch(cachedUrl, {
+            const executeResponse = await fetch(executeUrl, {
+                method: 'POST',
                 headers: {
                     'Authorization': `Key ${redashApiKey}`,
                     'Content-Type': 'application/json'
-                }
-            });
-
-            // If no cached results, execute the query
-            if (!executeResponse.ok || executeResponse.status === 404) {
-                log.info('No cached results, executing query...');
-                const executeUrl = `https://charts.apify.com/api/queries/2039/results`;
-                log.info(`Executing query at: ${executeUrl}`);
-
-                executeResponse = await fetch(executeUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Key ${redashApiKey}`,
-                        'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    parameters: {
+                        "actor_id": actorId,
+                        "runs_per_user": runsPerUser.toString(),
+                        "days_back": daysBack.toString(),
+                        "minimum_results": minimumResults.toString(),
+                        "maximum_results": maximumResults.toString(),
+                        "limit": maxResultsPerQuery.toString()
                     },
-                    body: JSON.stringify({
-                        parameters: {
-                            "actor_id": actorId,
-                            "runs_per_user": runsPerUser.toString(),
-                            "days_back": daysBack.toString(),
-                            "minimum_results": minimumResults.toString(),
-                            "maximum_results": maximumResults.toString(),
-                            "limit": chartLimit.toString()
-                        },
-                        max_age: 0
-                    })
-                });
-            }
+                    max_age: 0
+                })
+            });
 
             if (!executeResponse.ok) {
                 const errorText = await executeResponse.text();
@@ -293,15 +280,7 @@ export class DatasetSchemaValidator {
             const executeData = await executeResponse.json();
             log.info('Query execute response:', executeData);
 
-            // Check if we got cached results directly
-            if (executeData?.query_result?.data?.rows) {
-                log.info('Got cached results directly');
-                const datasetIds = executeData.query_result.data.rows.map((row: any) => row.default_dataset_id || row.dataset_id || row.id).filter(Boolean);
-                log.info(`Found ${datasetIds.length} dataset IDs:`, datasetIds);
-                return datasetIds;
-            }
-
-            // Step 2: Poll for job completion
+            // Poll for job completion (since we always execute query directly)
             const jobId = executeData.job?.id;
             if (!jobId) {
                 handleError('Job ID not found', 'No job ID in execute response');

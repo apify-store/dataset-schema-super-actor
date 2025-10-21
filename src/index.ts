@@ -35,7 +35,7 @@ interface SuperActorInput {
     maximumResults?: string;
     minimumResults?: string;
     runsPerUser?: string;
-    chartLimit?: string;
+    maxResultsPerQuery?: string;
     
     // Step 5: GitHub PR Creation
     createPR?: boolean;
@@ -292,7 +292,7 @@ class DatasetSchemaSuperActor {
                 this.input.redashToken,
                 parseInt(this.input.daysBack || '5', 10),
                 parseInt(this.input.maximumResults || '10', 10),
-                parseInt(this.input.chartLimit || '1000', 10)
+                parseInt(this.input.maxResultsPerQuery || '1000', 10)
             );
             
             if (result.error) {
@@ -444,7 +444,7 @@ class DatasetSchemaSuperActor {
                 maximumResults: parseInt(this.input.maximumResults || '10', 10),
                 minimumResults: parseInt(this.input.minimumResults || '1', 10),
                 runsPerUser: parseInt(this.input.runsPerUser || '1', 10),
-                chartLimit: parseInt(this.input.chartLimit || '1000', 10)
+                maxResultsPerQuery: parseInt(this.input.maxResultsPerQuery || '1000', 10)
             });
 
             log.info(

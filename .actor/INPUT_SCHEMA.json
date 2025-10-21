@@ -128,8 +128,8 @@
       "pattern": "^[0-9]+$",
       "editor": "textfield"
     },
-    "chartLimit": {
-      "title": "Chart Query Limit",
+    "maxResultsPerQuery": {
+      "title": "Max results per query",
       "type": "string",
       "description": "Maximum number of rows to fetch from Redash chart query (0 = unlimited)",
       "default": "1000",

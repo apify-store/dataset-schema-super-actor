@@ -408,20 +408,27 @@ class DatasetSchemaSuperActor {
             });
             
             // FIX: Handle different schema structures from different generation methods
-            // For Redash datasets: result.schema might be a JSON string that needs parsing
-            // For test inputs: initialSchema.schema contains the schema object
+            // The issue is that initialSchema itself contains the schema as a stringified JSON
+            // We need to extract it properly
             let schemaToEnhance;
             
-            // First check if initialSchema.schema is a string that needs parsing
-            if (typeof initialSchema.schema === 'string') {
+            // The schema is stored in initialSchema.schema, but it might be stringified
+            // Try to get it as an object first
+            if (initialSchema.schema && typeof initialSchema.schema === 'string') {
                 log.info('Parsing schema from JSON string...');
-                schemaToEnhance = JSON.parse(initialSchema.schema);
-            } else if (initialSchema.generatedBy === 'redash_datasets') {
-                // For Redash datasets, result.schema should be the schema object
-                schemaToEnhance = initialSchema.schema || initialSchema;
-            } else {
-                // For test inputs, initialSchema.schema contains the schema
+                try {
+                    schemaToEnhance = JSON.parse(initialSchema.schema);
+                    log.info('Successfully parsed JSON string schema');
+                } catch (error) {
+                    log.error('Failed to parse JSON string schema:', { error });
+                    schemaToEnhance = initialSchema.schema;
+                }
+            } else if (initialSchema.schema && typeof initialSchema.schema === 'object') {
+                log.info('Using schema object directly');
                 schemaToEnhance = initialSchema.schema;
+            } else {
+                log.error('Could not find schema in initialSchema');
+                handleError('Schema enhancement failed', 'No valid schema found in initialSchema');
             }
             
             log.info('Using schema for enhancement:', {

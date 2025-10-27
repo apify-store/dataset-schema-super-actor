@@ -91,43 +91,48 @@
     },
     "daysBack": {
       "title": "Days Back for Validation",
-      "type": "string",
+      "type": "integer",
       "description": "Number of days back to look for datasets in validation",
-      "default": "5",
-      "pattern": "^[0-9]+$",
-      "editor": "textfield"
+      "default": 5,
+      "minimum": 1,
+      "maximum": 30,
+      "editor": "number"
     },
     "maximumResults": {
       "title": "Maximum Results for Validation",
-      "type": "string",
+      "type": "integer",
       "description": "Maximum number of results to fetch for validation",
-      "default": "10",
-      "pattern": "^[0-9]+$",
-      "editor": "textfield"
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100,
+      "editor": "number"
     },
     "minimumResults": {
       "title": "Minimum Results for Validation",
-      "type": "string",
+      "type": "integer",
       "description": "Minimum number of results required for validation",
-      "default": "1",
-      "pattern": "^[0-9]+$",
-      "editor": "textfield"
+      "default": 1,
+      "minimum": 1,
+      "maximum": 100,
+      "editor": "number"
     },
     "runsPerUser": {
       "title": "Runs Per User for Validation",
-      "type": "string",
+      "type": "integer",
       "description": "Number of runs per user to consider in validation",
-      "default": "2",
-      "pattern": "^[0-9]+$",
-      "editor": "textfield"
+      "default": 2,
+      "minimum": 1,
+      "maximum": 10,
+      "editor": "number"
     },
     "maxResultsPerQuery": {
       "title": "Max results per query",
-      "type": "string",
+      "type": "integer",
       "description": "Maximum number of rows to fetch from Redash chart query (0 = unlimited)",
-      "default": "1000",
-      "pattern": "^[0-9]+$",
-      "editor": "textfield"
+      "default": 1000,
+      "minimum": 0,
+      "maximum": 10000,
+      "editor": "number"
     },
     "createPR": {
       "sectionCaption": "Step 5: GitHub PR Creation",

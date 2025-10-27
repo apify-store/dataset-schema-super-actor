@@ -30,11 +30,11 @@ interface SuperActorInput {
     
     // Step 4: Schema Validation
     validateSchema?: boolean;
-    daysBack?: string;
-    maximumResults?: string;
-    minimumResults?: string;
-    runsPerUser?: string;
-    maxResultsPerQuery?: string;
+    daysBack?: number;
+    maximumResults?: number;
+    minimumResults?: number;
+    runsPerUser?: number;
+    maxResultsPerQuery?: number;
     
     // Step 5: GitHub PR Creation
     createPR?: boolean;
@@ -290,9 +290,9 @@ class DatasetSchemaSuperActor {
             const result = await schemaGenerator.generateSchemaFromRedashDatasets(
                 this.input.actorTechnicalName,
                 redashToken,
-                parseInt(this.input.daysBack || '5', 10),
-                parseInt(this.input.maximumResults || '10', 10),
-                parseInt(this.input.maxResultsPerQuery || '1000', 10)
+                this.input.daysBack || 5,
+                this.input.maximumResults || 10,
+                this.input.maxResultsPerQuery || 1000
             );
             
             if (result.error) {
@@ -496,11 +496,11 @@ class DatasetSchemaSuperActor {
                 actorId: this.input.actorTechnicalName,
                 datasetSchema: enhancedSchema,
                 redashApiKey: redashToken,
-                daysBack: parseInt(this.input.daysBack || '5', 10),
-                maximumResults: parseInt(this.input.maximumResults || '10', 10),
-                minimumResults: parseInt(this.input.minimumResults || '1', 10),
-                runsPerUser: parseInt(this.input.runsPerUser || '1', 10),
-                maxResultsPerQuery: parseInt(this.input.maxResultsPerQuery || '1000', 10)
+                daysBack: this.input.daysBack || 5,
+                maximumResults: this.input.maximumResults || 10,
+                minimumResults: this.input.minimumResults || 1,
+                runsPerUser: this.input.runsPerUser || 1,
+                maxResultsPerQuery: this.input.maxResultsPerQuery || 1000
             });
 
             log.info(

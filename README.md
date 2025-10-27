@@ -1,256 +1,342 @@
 # Dataset Schema SuperActor
 
-A powerful orchestrator that automatically generates, enhances, validates, and creates PRs with dataset schemas for your Apify Actors.
+An automated Apify Actor that streamlines the creation of dataset schemas for Apify Actors. This SuperActor takes you through a complete workflow from input generation to GitHub pull request creation.
 
-## What Does This Actor Do?
+## Overview
 
-This SuperActor automates the entire workflow of creating dataset schemas for your Actors through 5 simple steps:
+The Dataset Schema SuperActor generates, enhances, validates, and deploys dataset schemas for Apify Actors. It automates the entire lifecycle of dataset schema creation, ensuring consistency and quality across your Actor projects.
 
-1. **Generate inputs** - Uses AI to create realistic test inputs
-2. **Generate schema** - Runs your Actor and creates an initial dataset schema
-3. **Enhance schema** - Uses AI to add descriptions, examples, and improve the schema
-4. **Validate schema** - Validates against real dataset data
-5. **Create PR** - Creates a GitHub pull request with the validated schema
+## Five Core Steps
 
-## Quick Start
+The Actor operates in five sequential steps, each of which can be enabled or skipped based on your needs:
 
-The easiest way to use this Actor - just provide your Actor's technical name:
+### 📝 Step 1: Generate Test Inputs
 
-### Basic Usage
+This step uses Claude Sonnet 4 to generate four types of test inputs for your Actor:
+- **Minimal Input:** Basic input with only essential parameters
+- **Normal Input:** Realistic input with common optional parameters
+- **Maximal Input:** Comprehensive input utilizing all available parameters
+- **Edge Input:** Input designed to test error handling while still producing a dataset
 
-In the Actor input form:
+The generated inputs are validated against the Actor to ensure they work correctly before proceeding.
 
-1. **Actor Technical Name**: `apify/instagram-scraper`
-2. Leave all checkboxes enabled (default)
-3. Click **Run**
+**When to use:**
+- You don't have existing test inputs
+- You want to generate comprehensive test coverage automatically
+- You're testing a new Actor
 
-That's it! The Actor will handle everything automatically.
+---
 
-### To Create a GitHub PR
+### 📊 Step 2: Generate Initial Schema
 
-Add your GitHub repository information:
+This step creates a base dataset schema. You have **three independent options**:
 
-1. **Actor Technical Name**: `apify/instagram-scraper`
-2. **Step 5: Create GitHub PR** → Enable checkbox
-3. **GitHub Repository Link**: `https://github.com/your-org/your-repo`
-4. **GitHub Personal Access Token**: Your GitHub token
-5. Click **Run**
+#### Option A: Generate Inputs First (Step 1)
+- Enable Step 1 to auto-generate test inputs
+- The Actor runs with these generated inputs
+- Schema is extracted from the output datasets
 
-## Step-by-Step Guide
+#### Option B: Provide Your Own Inputs
+- Set `generateInputs: false`
+- Provide `existingMinimalInput`, `existingNormalInput`, `existingMaximalInput`, `existingEdgeInput`
+- The Actor runs with your provided inputs
+- Schema is extracted from the output datasets
 
-### Step 1: Generate Inputs (Recommended)
+#### Option C: Use Real Production Datasets
+- Set `generateInputs: false` and `useRealDatasetIds: true`
+- The Actor queries Redash to find recent datasets for your Actor
+- Samples data from real production runs
+- Schema is generated from actual user data (no Actor runs needed)
 
-**What it does:** Uses AI (Claude Sonnet 4) to analyze your Actor and create 4 types of test inputs:
-- Minimal input - Basic functionality test
-- Normal input - Realistic usage scenario  
-- Maximal input - Comprehensive feature test
-- Edge input - Error scenarios that still produce datasets
+The schema generator Actor analyzes the structure of items in the datasets and creates a JSON Schema definition.
 
-**How to use:**
-- ✅ Keep "Generate Test Inputs" enabled (default)
-- Or disable to provide your own inputs in Step 2
-
-### Step 2: Generate Schema (Required)
-
-**What it does:** Runs your Actor with test inputs, collects datasets, and generates an initial schema.
-
-**Two options:**
-
-**Option A: Using test inputs (Easiest)**
-- ✅ Keep "Generate Initial Schema" enabled
-- ✅ Step 1 must be enabled (or provide existing inputs below)
-- The Actor will use generated/provided test inputs
-
-**Option B: Using real datasets**
-- ✅ Enable "Generate Initial Schema"
-- ✅ Enable "Use Real Dataset IDs Instead"
-- Uses actual production data from Redash
-- More accurate but requires `REDASH_API_TOKEN` environment variable
-
-### Step 3: Schema Enhancement (Recommended)
-
-**What it does:** Uses AI to improve the raw schema by adding descriptions, examples, and making it production-ready.
-
-**How to use:**
-- ✅ Keep "Enhance Schema with AI" enabled (default)
-- Or provide "Existing Enhanced Schema" to skip this step
-- ✅ Enable "Generate Views" to add dataset views
-
-### Step 4: Schema Validation (Recommended)
-
-**What it does:** Queries Redash for real Actor datasets and validates the schema against actual data to ensure accuracy.
-
-**How to use:**
-- ✅ Keep "Validate Schema" enabled (default)
-- Adjust validation parameters if needed:
-  - **Days Back** (1-14, default: 5) - How far back to look
-  - **Maximum Results** (1-100, default: 10) - Max datasets to fetch
-  - **Minimum Results** (1-100, default: 1) - Min datasets required
-  - **Runs Per User** (1-10, default: 2) - Runs to consider
-  - **Max Results Per Query** (0-300, default: 100) - Query limit
-
-**Note:** Requires `REDASH_API_TOKEN` environment variable
-
-### Step 5: GitHub PR Creation
-
-**What it does:** Creates a GitHub pull request with the validated schema and updated actor.json.
-
-**How to use:**
-- ✅ Enable "Create GitHub PR"
-- **GitHub Repository Link**: Your repo URL
-- **GitHub Personal Access Token**: Your GitHub token
-- Click **Run**
-
-The PR will include:
-- `dataset_schema.json` - The validated schema
-- Updated `actor.json` - References to the schema
-
-## Environment Variables
-
-### Required Setup
-
-**REDASH_API_TOKEN** - Your Redash API token
-
-Set this up:
-1. Open your Actor in Apify Console
-2. Go to **Settings** → **Environment variables**
-3. Add new variable:
-   - Name: `REDASH_API_TOKEN`
-   - Value: Your Redash API token
-   - ✅ Enable "Secret" (hides it in logs)
-4. Click **Save**
-
-**When you need it:**
-- Step 2 with "Use Real Dataset IDs Instead" enabled
-- Step 4 "Validate Schema" enabled
-
-## Common Use Cases
-
-### Use Case 1: Quick Schema Generation (Easiest)
-
-Just need a schema quickly:
-
-1. **Actor Technical Name**: `your-actor/name`
-2. All steps enabled ✅
-3. Click **Run**
-
-### Use Case 2: Using Real Production Data
-
-Generate schema from actual Actor runs:
-
-1. **Actor Technical Name**: `your-actor/name`
-2. **Step 2** → ✅ Enable "Generate Initial Schema"
-3. **Step 2** → ✅ Enable "Use Real Dataset IDs Instead"
-4. **Step 3** → ✅ Enable "Generate Views"
-5. All other steps enabled ✅
-6. Click **Run**
-
-### Use Case 3: Skip Validation
-
-Skip validation step if you want faster results:
-
-1. **Actor Technical Name**: `your-actor/name`
-2. All steps enabled ✅
-3. **Step 4** → ❌ Disable "Validate Schema"
-4. Click **Run**
-
-### Use Case 4: Create PR in Your Repository
-
-Generate schema and create a pull request:
-
-1. **Actor Technical Name**: `your-actor/name`
-2. All steps enabled ✅
-3. **Step 5** → **GitHub Repository Link**: `https://github.com/yourorg/repo`
-4. **Step 5** → **GitHub Personal Access Token**: `ghp_xxx`
-5. Click **Run**
-
-### Use Case 5: Provide Your Own Inputs
-
-Use custom test inputs:
-
-1. **Actor Technical Name**: `your-actor/name`
-2. **Step 1** → ❌ Disable "Generate Test Inputs"
-3. **Step 2** → ✅ Enable "Generate Initial Schema"
-4. **Step 2** → Provide your inputs:
-   - **Existing Minimal Input**: `{"urls":["https://example.com"]}`
-   - **Existing Normal Input**: `{"urls":[...],"maxItems":10}`
-   - **Existing Maximal Input**: `{"urls":[...],"maxItems":100}`
-   - **Existing Edge Input**: `{"urls":[],"maxItems":0}`
-5. Click **Run**
-
-## Understanding the Steps
-
-### Why 5 Steps?
-
-Each step can work independently:
-
-- **Step 1** - AI creates test inputs, or you provide them
-- **Step 2** - Generates schema from test runs or real datasets
-- **Step 3** - Enhances the schema with AI improvements
-- **Step 4** - Validates the schema against real data
-- **Step 5** - Creates a GitHub PR with the results
-
-You can enable/disable any step. Disabled steps are skipped.
-
-### Schema Generation Options
-
-**Test Inputs (Step 1 + Step 2):**
-- ✅ Pros: Works immediately, no real data needed
-- ❌ Cons: Schema might not match all real data patterns
-
-**Real Datasets (Step 2 with "Use Real Dataset IDs"):**
-- ✅ Pros: More accurate, based on real production data
-- ❌ Cons: Requires Actor to have recent runs with datasets
-
-**Recommendation:** Start with test inputs, then validate (Step 4) to check accuracy.
-
-## Best Practices
-
-1. **Always enable Step 3** - Enhances schema with AI
-2. **Enable Step 4** - Validates schema matches real data
-3. **Enable "Generate Views"** - Better dataset visualization
-4. **Use "Use Real Dataset IDs"** - More accurate schemas
-5. **Set REDASH_API_TOKEN** - Required for validation
-
-## Troubleshooting
-
-### "REDASH_API_TOKEN environment variable is not set"
-
-**Solution:** Add it in Apify Console:
-1. Actor → Settings → Environment variables
-2. Add `REDASH_API_TOKEN`
-3. Set your Redash token
-4. Enable "Secret"
-
-### "Schema validation failed"
-
-**Fix:** Check your Actor has recent runs with datasets within the days back timeframe.
-
-### "No datasets found"
-
-**Fix:** Increase "Days Back" or ensure your Actor has recent successful runs.
-
-## Output
-
-Returns a summary with:
+**When to use:**
+- Option A: You want everything automated
+- Option B: You have proven test inputs that work
+- Option C: You want the most realistic schema based on actual usage patterns
+
+---
+
+### ✨ Step 3: Schema Enhancement
+
+This step uses Claude Sonnet 4 to improve the initial schema by:
+- Adding clear field descriptions
+- Generating realistic, anonymized examples
+- Ensuring proper field types and formats
+- Creating dataset views (if enabled)
+- Making all fields nullable by default
+
+**Important:** All fields start as nullable. After the Actor generates the enhanced schema, developers can review it and choose which fields should:
+- Not be nullable (required for schema validation)
+- Be added to the `required` array
+- Have stricter type constraints
+
+The enhancer works with the existing schema structure and only improves the content—it doesn't add, remove, or rename fields.
+
+**When to use:**
+- You want a production-ready schema with documentation
+- You need dataset views for better visualization
+- You want to improve existing schema quality
+
+---
+
+### 🔍 Step 4: Schema Validation
+
+This step queries Redash to find datasets from recent Actor runs and validates them against the schema:
+- Fetches datasets from the last N days (configurable)
+- Samples data from each dataset
+- Validates data structure against the schema
+- Reports validation success rate and any errors
+
+Validation ensures the schema accurately represents real Actor output data. It requires a 100% success rate before proceeding to PR creation.
+
+**When to use:**
+- You want to verify schema accuracy against real data
+- You need to catch schema issues before deploying
+- You want confidence that the schema works with production data
+
+---
+
+### 📝 Step 5: GitHub PR Creation
+
+This step automates the GitHub workflow:
+1. Finds the target Actor's repository (supports monorepo structures)
+2. Locates the correct `actor.json` file in the actor's directory
+3. Creates a new branch
+4. Generates `dataset_schema.json` with field definitions and views
+5. Moves existing views from `actor.json` to `dataset_schema.json` (if they exist)
+6. Updates `actor.json` to reference the schema
+7. Creates a pull request
+
+**When to use:**
+- You want to deploy the schema to your Actor repository
+- You need an automated PR workflow
+- You're ready to integrate the schema into your codebase
+
+**GitHub Token Permissions Needed:**
+- `repo` - Full control of private repositories
+- `workflow` - Update GitHub Action workflows (if applicable)
+
+---
+
+## Usage Examples
+
+### Full Workflow
+Generate everything automatically from scratch:
+
+```json
+{
+  "actorTechnicalName": "compass/Instagram-Scraper",
+  "generateInputs": true,
+  "generateSchema": true,
+  "enhanceSchema": true,
+  "generateViews": true,
+  "validateSchema": true,
+  "createPR": true,
+  "githubLink": "https://github.com/apify/actors",
+  "githubToken": "ghp_your_token_here"
+}
+```
+
+### Using Your Own Inputs
+Skip input generation and use your own test inputs:
+
+```json
+{
+  "actorTechnicalName": "compass/Instagram-Scraper",
+  "generateInputs": false,
+  "generateSchema": true,
+  "existingMinimalInput": "{\"directUrls\": [\"https://instagram.com/user\"], \"maxItems\": 3}",
+  "existingNormalInput": "{\"directUrls\": [...], \"maxItems\": 50}",
+  "existingMaximalInput": "{\"directUrls\": [...], \"maxItems\": 500, \"extendOutputFunction\": \"...\"}",
+  "existingEdgeInput": "{\"directUrls\": [\"https://instagram.com/nonexistent_user_999\"], \"maxItems\": 1}",
+  "enhanceSchema": true,
+  "validateSchema": true,
+  "createPR": true,
+  "githubLink": "https://github.com/apify/actors",
+  "githubToken": "ghp_your_token_here"
+}
+```
+
+### Using Real Production Datasets
+Generate schema from production data instead of test inputs:
+
+```json
+{
+  "actorTechnicalName": "compass/Instagram-Scraper",
+  "generateInputs": false,
+  "generateSchema": true,
+  "useRealDatasetIds": true,
+  "enhanceSchema": true,
+  "validateSchema": true,
+  "daysBack": 7,
+  "maximumResults": 20,
+  "createPR": true,
+  "githubLink": "https://github.com/apify/actors",
+  "githubToken": "ghp_your_token_here"
+}
+```
+
+### Schema Enhancement Only
+Enhance an existing schema without running any Actors:
+
+```json
+{
+  "actorTechnicalName": "compass/Instagram-Scraper",
+  "generateInputs": false,
+  "generateSchema": false,
+  "enhanceSchema": true,
+  "existingEnhancedSchema": "{\"actorSpecification\": 1, \"fields\": {...}}",
+  "validateSchema": false,
+  "createPR": true,
+  "githubLink": "https://github.com/apify/actors",
+  "githubToken": "ghp_your_token_here"
+}
+```
+
+### Skip PR Creation
+Generate and validate schema without creating a PR:
+
+```json
+{
+  "actorTechnicalName": "compass/Instagram-Scraper",
+  "generateInputs": true,
+  "generateSchema": true,
+  "enhanceSchema": true,
+  "validateSchema": true,
+  "createPR": false
+}
+```
+
+---
+
+## Workflow Output
+
+The Actor provides detailed progress information for each step:
 
 ```json
 {
   "success": true,
-  "prUrl": "https://github.com/...",
+  "prUrl": "https://github.com/org/repo/pull/123",
   "progress": {
     "inputGeneration": "completed",
     "schemaGeneration": "completed",
     "schemaEnhancement": "completed",
     "schemaValidation": "completed",
     "prCreation": "completed"
+  },
+  "details": {
+    "actorName": "compass/Instagram-Scraper",
+    "generatedSchema": {...},
+    "validationResults": {...},
+    "prInfo": {...}
   }
 }
 ```
 
-## Tips
+---
 
-- **Start simple** - Enable all steps, use defaults
-- **Adjust validation** - Tune Step 4 parameters for your needs
-- **Use real data** - Enable "Use Real Dataset IDs" for accuracy
-- **Enable views** - Better dataset visualization in Apify Console
+## Best Practices
+
+### Input Generation
+- Ensure the Actor is accessible and working before running
+- Use realistic URLs and parameters that actually exist
+- Keep URL arrays short (2-5 items) to avoid timeout issues
+
+### Schema Generation
+- Start with minimal inputs to reduce costs and time
+- Use `maxItems: 3` to limit dataset size during testing
+- Consider using `useRealDatasetIds` for more accurate schemas from production data
+
+### Schema Enhancement
+- Enable `generateViews: true` for better data visualization in Apify Console
+- Review AI-generated descriptions for accuracy before creating PRs
+- After generation, manually set which fields should be required (not nullable)
+
+### Schema Validation
+- Set `daysBack` to 7-14 for better dataset coverage
+- Increase `maximumResults` for more comprehensive validation
+- Ensure 100% validation success rate before creating PRs
+
+### PR Creation
+- Use GitHub secrets for tokens in production
+- Verify repository structure before running
+- Review the PR diff carefully before merging
+- Check that existing views were properly moved to `dataset_schema.json`
+
+---
+
+## Error Handling
+
+The Actor provides detailed error messages for each step:
+
+- **Input Generation Failed:** Generated inputs don't work with the Actor
+  - Solution: Check Actor requirements, provide better inputs manually, or review Actor's input schema
+  
+- **Schema Generation Failed:** No datasets found or schema generator failed
+  - Solution: Verify Actor runs successfully, check dataset accessibility, try with `useRealDatasetIds: true`
+  
+- **Schema Enhancement Failed:** AI enhancement returned invalid schema
+  - Solution: Review schema size limits, provide existing enhanced schema, check network connectivity
+  
+- **Validation Failed:** Schema doesn't match real data (must be 100% success rate)
+  - Solution: Review validation errors, adjust schema manually, check for missing optional fields
+  
+- **PR Creation Failed:** GitHub API errors or repository not found
+  - Solution: Verify GitHub token has correct permissions, check repository URL format, ensure Actor exists in monorepo
+
+---
+
+## Technical Details
+
+### Schema Format
+The Actor generates schemas following the Apify Actor specification format:
+
+```json
+{
+  "actorSpecification": 1,
+  "fields": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "fieldName": {
+        "type": "string",
+        "description": "Field description",
+        "nullable": true,
+        "example": "example_value"
+      }
+    },
+    "required": []
+  },
+  "views": {
+    "overview": {
+      "title": "Overview",
+      "transformation": { "fields": ["field1", "field2"] }
+    }
+  }
+}
+```
+
+### Dataset Views
+Views are generated automatically when `generateViews: true`:
+- Overview view with all fields in table format
+- Field formatting based on type (image, link, date, number)
+- Proper field labels from camelCase
+- Existing views are moved from `actor.json` to `dataset_schema.json`
+
+### GitHub Integration
+The Actor:
+1. Searches for Actor-specific `actor.json` files in monorepo structures
+2. Supports path patterns like `actors/[actor-name]/.actor/actor.json`
+3. Moves existing views from `actor.json` to the new `dataset_schema.json`
+4. Updates `actor.json` to reference `dataset_schema.json` via the `storages.dataset` field
+5. Preserves existing formatting and structure
+
+---
+
+## Support
+
+For issues, questions, or contributions:
+- Check the Actor logs for detailed error messages
+- Review each step's output in the progress tracking
+- Open an issue (or better yet a PR) in the repository

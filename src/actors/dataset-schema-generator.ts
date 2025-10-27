@@ -213,12 +213,14 @@ export class DatasetSchemaGenerator {
                 schemaType: typeof result.schema
             });
 
-            // Normalize the schema structure to match the expected format
-            // The schema generator Actor returns the schema directly, but we need to wrap it
-            // in the same structure as the test input schema generation
+            // FIX: The schema generator Actor returns the schema directly (already an object)
+            // We need to match the structure returned by generateDatasetSchema
+            // which returns { schema: schemaItem } where schemaItem is the actual schema
+            // But here result.schema is the actual schema object, so we return it directly
             return {
                 schema: result.schema,
-                generatedBy: 'redash_datasets'
+                generatedBy: 'redash_datasets',
+                schemaDatasetId: undefined
             };
 
         } catch (error) {

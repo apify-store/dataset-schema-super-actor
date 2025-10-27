@@ -401,12 +401,30 @@ class DatasetSchemaSuperActor {
                 schemaType: typeof initialSchema.schema,
                 generatedBy: initialSchema.generatedBy
             });
+            
+            // FIX: Handle different schema structures from different generation methods
+            // For Redash datasets: result.schema is already the schema object with properties
+            // For test inputs: initialSchema.schema contains the schema object
+            let schemaToEnhance;
+            if (initialSchema.generatedBy === 'redash_datasets') {
+                // For Redash datasets, result.schema is already the schema object
+                // So initialSchema itself IS the schema
+                schemaToEnhance = initialSchema.schema || initialSchema;
+            } else {
+                // For test inputs, initialSchema.schema contains the schema
+                schemaToEnhance = initialSchema.schema;
+            }
+            
+            log.info('Using schema for enhancement:', {
+                schemaKeys: Object.keys(schemaToEnhance || {}),
+                hasProperties: 'properties' in (schemaToEnhance || {})
+            });
 
             const schemaEnhancer = new LLMSchemaEnhancer();
             
             const enhancementResult = await schemaEnhancer.enhanceSchema({
                 actorName: this.input.actorTechnicalName,
-                datasetSchema: initialSchema.schema!,
+                datasetSchema: schemaToEnhance!,
                 generateViews: this.input.generateViews || false
             });
 

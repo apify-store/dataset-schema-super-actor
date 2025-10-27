@@ -30,7 +30,6 @@ interface SuperActorInput {
     
     // Step 4: Schema Validation
     validateSchema?: boolean;
-    redashToken?: string;
     daysBack?: string;
     maximumResults?: string;
     minimumResults?: string;
@@ -280,16 +279,17 @@ class DatasetSchemaSuperActor {
 
     private async generateSchemaFromRedashDatasets(): Promise<any> {
         try {
-            // Check if redash token is provided
-            if (!this.input.redashToken?.trim()) {
-                handleError('Redash schema generation failed', 'Redash API token is required when useRealDatasetIds is enabled. Please provide redashToken.');
+            // Get redash token from environment variable
+            const redashToken = process.env.REDASH_API_TOKEN;
+            if (!redashToken?.trim()) {
+                handleError('Redash schema generation failed', 'REDASH_API_TOKEN environment variable is not set.');
             }
             
             const schemaGenerator = new DatasetSchemaGenerator();
             
             const result = await schemaGenerator.generateSchemaFromRedashDatasets(
                 this.input.actorTechnicalName,
-                this.input.redashToken,
+                redashToken,
                 parseInt(this.input.daysBack || '5', 10),
                 parseInt(this.input.maximumResults || '10', 10),
                 parseInt(this.input.maxResultsPerQuery || '1000', 10)
@@ -484,9 +484,10 @@ class DatasetSchemaSuperActor {
                 handleError('Schema validation failed', 'No enhanced schema available. Either enable Step 3 (enhanceSchema) or provide existing enhanced schema.');
             }
             
-            // Check if redash token is provided
-            if (!this.input.redashToken?.trim()) {
-                handleError('Schema validation failed', 'Redash API token is required for validation. Please provide redashToken.');
+            // Get redash token from environment variable
+            const redashToken = process.env.REDASH_API_TOKEN;
+            if (!redashToken?.trim()) {
+                handleError('Schema validation failed', 'REDASH_API_TOKEN environment variable is not set.');
             }
             
             const validator = new DatasetSchemaValidator();
@@ -494,7 +495,7 @@ class DatasetSchemaSuperActor {
             const validationResult = await validator.processValidation({
                 actorId: this.input.actorTechnicalName,
                 datasetSchema: enhancedSchema,
-                redashApiKey: this.input.redashToken,
+                redashApiKey: redashToken,
                 daysBack: parseInt(this.input.daysBack || '5', 10),
                 maximumResults: parseInt(this.input.maximumResults || '10', 10),
                 minimumResults: parseInt(this.input.minimumResults || '1', 10),
@@ -588,8 +589,8 @@ async function main() {
         }
 
         // Validate step-specific requirements
-        if ((input!.validateSchema || input!.useRealDatasetIds) && !input!.redashToken) {
-            handleError('Input validation failed', 'redashToken is required when validateSchema or useRealDatasetIds is enabled');
+        if ((input!.validateSchema || input!.useRealDatasetIds) && !process.env.REDASH_API_TOKEN) {
+            handleError('Input validation failed', 'REDASH_API_TOKEN environment variable is required when validateSchema or useRealDatasetIds is enabled');
         }
         if (input!.createPR && (!input!.githubLink || !input!.githubToken)) {
             handleError('Input validation failed', 'githubLink and githubToken are required when createPR is enabled');

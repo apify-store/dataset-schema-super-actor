@@ -89,13 +89,6 @@
       "description": "Validate schema against real dataset data (Step 4)",
       "editor": "checkbox"
     },
-    "redashToken": {
-      "title": "Redash API Token",
-      "type": "string",
-      "description": "Redash API token for querying dataset validation data",
-      "isSecret": true,
-      "editor": "textfield"
-    },
     "daysBack": {
       "title": "Days Back for Validation",
       "type": "string",

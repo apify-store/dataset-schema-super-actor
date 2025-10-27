@@ -394,6 +394,11 @@ class DatasetSchemaSuperActor {
             log.info('Initial schema structure:', { schema: initialSchema });
             
             // Debug: Log the schema structure being passed to enhancer
+            log.info('Full initialSchema object:', { schema: JSON.stringify(initialSchema, null, 2) });
+            log.info('initialSchema.schema:', { schema: initialSchema.schema });
+            log.info('initialSchema.schema type:', { type: typeof initialSchema.schema });
+            log.info('initialSchema.generatedBy:', { generatedBy: initialSchema.generatedBy });
+            
             log.info('Schema being passed to enhancer:', {
                 schemaKeys: Object.keys(initialSchema.schema || {}),
                 hasFields: 'fields' in (initialSchema.schema || {}),

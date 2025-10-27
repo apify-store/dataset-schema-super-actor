@@ -392,6 +392,15 @@ class DatasetSchemaSuperActor {
             
             log.info('Enhancing schema with Claude Sonnet 4...');
             log.info('Initial schema structure:', { schema: initialSchema });
+            
+            // Debug: Log the schema structure being passed to enhancer
+            log.info('Schema being passed to enhancer:', {
+                schemaKeys: Object.keys(initialSchema.schema || {}),
+                hasFields: 'fields' in (initialSchema.schema || {}),
+                hasProperties: 'properties' in (initialSchema.schema || {}),
+                schemaType: typeof initialSchema.schema,
+                generatedBy: initialSchema.generatedBy
+            });
 
             const schemaEnhancer = new LLMSchemaEnhancer();
             

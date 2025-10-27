@@ -251,6 +251,10 @@ export class DatasetSchemaValidator {
             const executeUrl = `https://charts.apify.com/api/queries/2039/results`;
             log.info(`Executing Redash query directly (skipping cache): ${executeUrl}`);
             log.info(`Query parameters: actor_id=${actorId}, days_back=${daysBack}, maximum_results=${maximumResults}, minimum_results=${minimumResults}, runs_per_user=${runsPerUser}, limit=${maxResultsPerQuery}`);
+            
+            // Build the equivalent GET URL for debugging purposes
+            const debugUrl = `https://charts.apify.com/api/queries/2039/results.json?api_key=${redashApiKey}&actor_id=${actorId}&days_back=${daysBack}&maximum_results=${maximumResults}&minimum_results=${minimumResults}&runs_per_user=${runsPerUser}&limit=${maxResultsPerQuery}`;
+            log.info(`Debug: Equivalent GET URL would be: ${debugUrl}`);
 
             const executeResponse = await fetch(executeUrl, {
                 method: 'POST',

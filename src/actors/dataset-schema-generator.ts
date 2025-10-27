@@ -204,7 +204,18 @@ export class DatasetSchemaGenerator {
             log.info('✅ Schema generated successfully from Redash datasets');
             log.info(`Used ${result.datasetsUsed.length} datasets for generation`);
             log.info(`Reserved ${result.validationDatasets.length} datasets for validation`);
+            
+            // Debug: Log the schema structure to understand the format
+            log.info('Schema structure from Redash datasets:', { 
+                schemaKeys: Object.keys(result.schema || {}),
+                hasFields: 'fields' in (result.schema || {}),
+                hasProperties: 'properties' in (result.schema || {}),
+                schemaType: typeof result.schema
+            });
 
+            // Normalize the schema structure to match the expected format
+            // The schema generator Actor returns the schema directly, but we need to wrap it
+            // in the same structure as the test input schema generation
             return {
                 schema: result.schema,
                 generatedBy: 'redash_datasets'

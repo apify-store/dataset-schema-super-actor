@@ -292,7 +292,7 @@ class DatasetSchemaSuperActor {
                 redashToken,
                 this.input.daysBack || 5,
                 this.input.maximumResults || 10,
-                this.input.maxResultsPerQuery || 1000
+                this.input.maxResultsPerQuery || 100
             );
             
             if (result.error) {
@@ -500,7 +500,7 @@ class DatasetSchemaSuperActor {
                 maximumResults: this.input.maximumResults || 10,
                 minimumResults: this.input.minimumResults || 1,
                 runsPerUser: this.input.runsPerUser || 1,
-                maxResultsPerQuery: this.input.maxResultsPerQuery || 1000
+                maxResultsPerQuery: this.input.maxResultsPerQuery || 100
             });
 
             log.info(

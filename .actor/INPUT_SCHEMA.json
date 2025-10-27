@@ -95,7 +95,7 @@
       "description": "Number of days back to look for datasets in validation",
       "default": 5,
       "minimum": 1,
-      "maximum": 30,
+      "maximum": 14,
       "editor": "number"
     },
     "maximumResults": {
@@ -129,9 +129,9 @@
       "title": "Max results per query",
       "type": "integer",
       "description": "Maximum number of rows to fetch from Redash chart query (0 = unlimited)",
-      "default": 1000,
+      "default": 100,
       "minimum": 0,
-      "maximum": 10000,
+      "maximum": 300,
       "editor": "number"
     },
     "createPR": {

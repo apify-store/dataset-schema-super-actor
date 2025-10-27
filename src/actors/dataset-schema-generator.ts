@@ -213,12 +213,22 @@ export class DatasetSchemaGenerator {
                 schemaType: typeof result.schema
             });
 
-            // FIX: The schema generator Actor returns the schema directly (already an object)
-            // We need to match the structure returned by generateDatasetSchema
-            // which returns { schema: schemaItem } where schemaItem is the actual schema
-            // But here result.schema is the actual schema object, so we return it directly
+            // The result.schema from the validator is a schema object (with type, properties, etc.)
+            // But it might be stringified. Let's check and parse if needed.
+            let schemaToReturn = result.schema;
+            
+            // If schema is a string, parse it
+            if (typeof result.schema === 'string') {
+                log.info('result.schema is a string, parsing it to object...');
+                try {
+                    schemaToReturn = JSON.parse(result.schema);
+                } catch (error) {
+                    log.error('Failed to parse result.schema as JSON:', { error });
+                }
+            }
+            
             return {
-                schema: result.schema,
+                schema: schemaToReturn,
                 generatedBy: 'redash_datasets',
                 schemaDatasetId: undefined
             };

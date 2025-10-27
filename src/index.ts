@@ -394,10 +394,10 @@ class DatasetSchemaSuperActor {
             log.info('Initial schema structure:', { schema: initialSchema });
             
             // Debug: Log the schema structure being passed to enhancer
-            log.info('Full initialSchema object:', { schema: JSON.stringify(initialSchema, null, 2) });
-            log.info('initialSchema.schema:', { schema: initialSchema.schema });
+            log.info('Full initialSchema object:', initialSchema);
+            log.info('initialSchema.schema:', initialSchema.schema);
             log.info('initialSchema.schema type:', { type: typeof initialSchema.schema });
-            log.info('initialSchema.generatedBy:', { generatedBy: initialSchema.generatedBy });
+            log.info('initialSchema.generatedBy:', initialSchema.generatedBy);
             
             log.info('Schema being passed to enhancer:', {
                 schemaKeys: Object.keys(initialSchema.schema || {}),
@@ -407,28 +407,40 @@ class DatasetSchemaSuperActor {
                 generatedBy: initialSchema.generatedBy
             });
             
-            // FIX: Handle different schema structures from different generation methods
-            // The issue is that initialSchema itself contains the schema as a stringified JSON
-            // We need to extract it properly
+            // FIX: The schema is actually stored in initialSchema, not initialSchema.schema
+            // Looking at the logs, initialSchema itself is a stringified JSON that contains the schema
             let schemaToEnhance;
             
-            // The schema is stored in initialSchema.schema, but it might be stringified
-            // Try to get it as an object first
-            if (initialSchema.schema && typeof initialSchema.schema === 'string') {
-                log.info('Parsing schema from JSON string...');
+            // Try to parse initialSchema if it's a string
+            if (typeof initialSchema === 'string') {
+                log.info('initialSchema is a string, parsing it...');
                 try {
-                    schemaToEnhance = JSON.parse(initialSchema.schema);
-                    log.info('Successfully parsed JSON string schema');
+                    const parsed = JSON.parse(initialSchema);
+                    schemaToEnhance = parsed.schema || parsed;
+                    log.info('Successfully parsed initialSchema string');
                 } catch (error) {
-                    log.error('Failed to parse JSON string schema:', { error });
+                    log.error('Failed to parse initialSchema string:', { error });
+                    schemaToEnhance = initialSchema;
+                }
+            } else if (initialSchema.schema) {
+                // initialSchema is an object and has a schema property
+                if (typeof initialSchema.schema === 'string') {
+                    log.info('initialSchema.schema is a string, parsing it...');
+                    try {
+                        schemaToEnhance = JSON.parse(initialSchema.schema);
+                        log.info('Successfully parsed initialSchema.schema string');
+                    } catch (error) {
+                        log.error('Failed to parse initialSchema.schema string:', { error });
+                        schemaToEnhance = initialSchema.schema;
+                    }
+                } else {
+                    log.info('Using initialSchema.schema as object');
                     schemaToEnhance = initialSchema.schema;
                 }
-            } else if (initialSchema.schema && typeof initialSchema.schema === 'object') {
-                log.info('Using schema object directly');
-                schemaToEnhance = initialSchema.schema;
             } else {
-                log.error('Could not find schema in initialSchema');
-                handleError('Schema enhancement failed', 'No valid schema found in initialSchema');
+                // Maybe initialSchema itself is the schema object?
+                log.info('Treating initialSchema as the schema object');
+                schemaToEnhance = initialSchema;
             }
             
             log.info('Using schema for enhancement:', {

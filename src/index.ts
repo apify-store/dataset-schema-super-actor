@@ -408,12 +408,16 @@ class DatasetSchemaSuperActor {
             });
             
             // FIX: Handle different schema structures from different generation methods
-            // For Redash datasets: result.schema is already the schema object with properties
+            // For Redash datasets: result.schema might be a JSON string that needs parsing
             // For test inputs: initialSchema.schema contains the schema object
             let schemaToEnhance;
-            if (initialSchema.generatedBy === 'redash_datasets') {
-                // For Redash datasets, result.schema is already the schema object
-                // So initialSchema itself IS the schema
+            
+            // First check if initialSchema.schema is a string that needs parsing
+            if (typeof initialSchema.schema === 'string') {
+                log.info('Parsing schema from JSON string...');
+                schemaToEnhance = JSON.parse(initialSchema.schema);
+            } else if (initialSchema.generatedBy === 'redash_datasets') {
+                // For Redash datasets, result.schema should be the schema object
                 schemaToEnhance = initialSchema.schema || initialSchema;
             } else {
                 // For test inputs, initialSchema.schema contains the schema

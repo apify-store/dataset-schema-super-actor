@@ -126,14 +126,14 @@ Generate everything automatically from scratch:
 
 ```json
 {
-  "actorTechnicalName": "compass/Instagram-Scraper",
+  "actorTechnicalName": "the-best-dev-ever/ultimate-scraper",
   "generateInputs": true,
   "generateSchema": true,
   "enhanceSchema": true,
   "generateViews": true,
   "validateSchema": true,
   "createPR": true,
-  "githubLink": "https://github.com/apify/actors",
+  "githubLink": "https://github.com/bestdev/actors",
   "githubToken": "ghp_your_token_here"
 }
 ```
@@ -143,17 +143,17 @@ Skip input generation and use your own test inputs:
 
 ```json
 {
-  "actorTechnicalName": "compass/Instagram-Scraper",
+  "actorTechnicalName": "the-best-dev-ever/ultimate-scraper",
   "generateInputs": false,
   "generateSchema": true,
-  "existingMinimalInput": "{\"directUrls\": [\"https://instagram.com/user\"], \"maxItems\": 3}",
-  "existingNormalInput": "{\"directUrls\": [...], \"maxItems\": 50}",
-  "existingMaximalInput": "{\"directUrls\": [...], \"maxItems\": 500, \"extendOutputFunction\": \"...\"}",
-  "existingEdgeInput": "{\"directUrls\": [\"https://instagram.com/nonexistent_user_999\"], \"maxItems\": 1}",
+  "existingMinimalInput": "{\"startUrls\": [{\"url\": \"https://example.com/page1\"}], \"maxItems\": 3}",
+  "existingNormalInput": "{\"startUrls\": [{\"url\": \"https://example.com/page1\"}], \"maxItems\": 50}",
+  "existingMaximalInput": "{\"startUrls\": [{\"url\": \"https://example.com/page1\"}], \"maxItems\": 500, \"extendOutputFunction\": \"...\"}",
+  "existingEdgeInput": "{\"startUrls\": [{\"url\": \"https://example.com/nonexistent-page-999\"}], \"maxItems\": 1}",
   "enhanceSchema": true,
   "validateSchema": true,
   "createPR": true,
-  "githubLink": "https://github.com/apify/actors",
+  "githubLink": "https://github.com/bestdev/actors",
   "githubToken": "ghp_your_token_here"
 }
 ```
@@ -163,7 +163,7 @@ Generate schema from production data instead of test inputs:
 
 ```json
 {
-  "actorTechnicalName": "compass/Instagram-Scraper",
+  "actorTechnicalName": "the-best-dev-ever/ultimate-scraper",
   "generateInputs": false,
   "generateSchema": true,
   "useRealDatasetIds": true,
@@ -172,7 +172,7 @@ Generate schema from production data instead of test inputs:
   "daysBack": 7,
   "maximumResults": 20,
   "createPR": true,
-  "githubLink": "https://github.com/apify/actors",
+  "githubLink": "https://github.com/bestdev/actors",
   "githubToken": "ghp_your_token_here"
 }
 ```
@@ -182,14 +182,14 @@ Enhance an existing schema without running any Actors:
 
 ```json
 {
-  "actorTechnicalName": "compass/Instagram-Scraper",
+  "actorTechnicalName": "the-best-dev-ever/ultimate-scraper",
   "generateInputs": false,
   "generateSchema": false,
   "enhanceSchema": true,
   "existingEnhancedSchema": "{\"actorSpecification\": 1, \"fields\": {...}}",
   "validateSchema": false,
   "createPR": true,
-  "githubLink": "https://github.com/apify/actors",
+  "githubLink": "https://github.com/bestdev/actors",
   "githubToken": "ghp_your_token_here"
 }
 ```
@@ -199,7 +199,7 @@ Generate and validate schema without creating a PR:
 
 ```json
 {
-  "actorTechnicalName": "compass/Instagram-Scraper",
+  "actorTechnicalName": "the-best-dev-ever/ultimate-scraper",
   "generateInputs": true,
   "generateSchema": true,
   "enhanceSchema": true,
@@ -217,7 +217,7 @@ The Actor provides detailed progress information for each step:
 ```json
 {
   "success": true,
-  "prUrl": "https://github.com/org/repo/pull/123",
+  "prUrl": "https://github.com/bestdev/actors/pull/123",
   "progress": {
     "inputGeneration": "completed",
     "schemaGeneration": "completed",
@@ -226,7 +226,7 @@ The Actor provides detailed progress information for each step:
     "prCreation": "completed"
   },
   "details": {
-    "actorName": "compass/Instagram-Scraper",
+    "actorName": "the-best-dev-ever/ultimate-scraper",
     "generatedSchema": {...},
     "validationResults": {...},
     "prInfo": {...}
@@ -236,56 +236,7 @@ The Actor provides detailed progress information for each step:
 
 ---
 
-## Best Practices
 
-### Input Generation
-- Ensure the Actor is accessible and working before running
-- Use realistic URLs and parameters that actually exist
-- Keep URL arrays short (2-5 items) to avoid timeout issues
-
-### Schema Generation
-- Start with minimal inputs to reduce costs and time
-- Use `maxItems: 3` to limit dataset size during testing
-- Consider using `useRealDatasetIds` for more accurate schemas from production data
-
-### Schema Enhancement
-- Enable `generateViews: true` for better data visualization in Apify Console
-- Review AI-generated descriptions for accuracy before creating PRs
-- After generation, manually set which fields should be required (not nullable)
-
-### Schema Validation
-- Set `daysBack` to 7-14 for better dataset coverage
-- Increase `maximumResults` for more comprehensive validation
-- Ensure 100% validation success rate before creating PRs
-
-### PR Creation
-- Use GitHub secrets for tokens in production
-- Verify repository structure before running
-- Review the PR diff carefully before merging
-- Check that existing views were properly moved to `dataset_schema.json`
-
----
-
-## Error Handling
-
-The Actor provides detailed error messages for each step:
-
-- **Input Generation Failed:** Generated inputs don't work with the Actor
-  - Solution: Check Actor requirements, provide better inputs manually, or review Actor's input schema
-  
-- **Schema Generation Failed:** No datasets found or schema generator failed
-  - Solution: Verify Actor runs successfully, check dataset accessibility, try with `useRealDatasetIds: true`
-  
-- **Schema Enhancement Failed:** AI enhancement returned invalid schema
-  - Solution: Review schema size limits, provide existing enhanced schema, check network connectivity
-  
-- **Validation Failed:** Schema doesn't match real data (must be 100% success rate)
-  - Solution: Review validation errors, adjust schema manually, check for missing optional fields
-  
-- **PR Creation Failed:** GitHub API errors or repository not found
-  - Solution: Verify GitHub token has correct permissions, check repository URL format, ensure Actor exists in monorepo
-
----
 
 ## Technical Details
 
